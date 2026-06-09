@@ -4,6 +4,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 /* ── AUTH ── */
 #auth-screen { display: none; align-items: center; justify-content: center; min-height: 100vh; padding: 24px; }
 #auth-screen.visible { display: flex; }
+#recovery-screen { display: none; align-items: center; justify-content: center; min-height: 100vh; padding: 24px; }
+#recovery-screen.visible { display: flex; }
+.auth-forgot { font-size: 12px; margin-top: 10px; text-align: center; }
+.auth-forgot a { color: #6b7280; cursor: pointer; text-decoration: underline; }
 
 .auth-card { background: #fff; border: 1px solid #e5e5e3; border-radius: 14px; padding: 40px 36px; width: 380px; max-width: 100%; }
 .auth-card h1 { font-size: 20px; font-weight: 700; margin-bottom: 6px; }

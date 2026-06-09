@@ -25,10 +25,18 @@ export function hideLoading() {
 export function showAuth() {
   document.getElementById('auth-screen').classList.add('visible')
   document.getElementById('app-screen').classList.remove('visible')
+  document.getElementById('recovery-screen').classList.remove('visible')
 }
 
 export function showApp(userEmail) {
   document.getElementById('auth-screen').classList.remove('visible')
+  document.getElementById('recovery-screen').classList.remove('visible')
   document.getElementById('app-screen').classList.add('visible')
   document.getElementById('topbar-user').textContent = userEmail
+}
+
+export function showRecovery() {
+  document.getElementById('auth-screen').classList.remove('visible')
+  document.getElementById('app-screen').classList.remove('visible')
+  document.getElementById('recovery-screen').classList.add('visible')
 }

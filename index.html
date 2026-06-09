@@ -36,6 +36,23 @@
         <span id="auth-toggle-text">Don't have an account?</span>
         <a onclick="toggleAuthMode()"> <span id="auth-toggle-link">Sign up</span></a>
       </div>
+      <div class="auth-forgot">
+        <a onclick="requestPasswordReset()">Forgot password?</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- RECOVERY (set new password) SCREEN -->
+  <div id="recovery-screen">
+    <div class="auth-card">
+      <h1>Set a new password</h1>
+      <p>Enter a new password for your account.</p>
+      <div class="field">
+        <label>New password</label>
+        <input type="password" id="recovery-password" placeholder="••••••••" autocomplete="new-password">
+      </div>
+      <div class="auth-err" id="recovery-err"></div>
+      <button class="btn btn-primary btn-full" id="recovery-btn" onclick="updatePassword()">Update password</button>
     </div>
   </div>
 

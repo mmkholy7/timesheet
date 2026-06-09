@@ -1,19 +1,61 @@
 import { sb } from './supabase.js'
 
 let authMode = 'signin'
+let recovering = false
+let handlers = {}
 
-export function initAuth({ onSignIn, onSignOut }) {
-  // Listen for auth state changes
+export function initAuth(opts) {
+  handlers = opts // { onSignIn, onSignOut, onRecovery }
+
+  // A password-reset/invite link lands with `type=recovery` in the URL hash.
+  // Detect it synchronously, before supabase-js consumes the hash, so we show
+  // the "set new password" screen instead of dropping the user into the app.
+  if (window.location.hash.includes('type=recovery')) recovering = true
+
+  // supabase-js auto-processes the token in the URL (detectSessionInUrl is on),
+  // then emits these events.
   sb.auth.onAuthStateChange((event, session) => {
-    if (event === 'SIGNED_IN' && session) onSignIn(session.user)
-    if (event === 'SIGNED_OUT') onSignOut()
+    if (event === 'PASSWORD_RECOVERY') { recovering = true; handlers.onRecovery(); return }
+    if (event === 'SIGNED_OUT') { recovering = false; handlers.onSignOut(); return }
+    if (event === 'SIGNED_IN' && session) {
+      if (recovering) { handlers.onRecovery(); return }
+      handlers.onSignIn(session.user)
+    }
   })
 
-  // Check existing session on load
+  // Existing session on load (normal revisit).
   sb.auth.getSession().then(({ data: { session } }) => {
-    if (session) onSignIn(session.user)
-    else onSignOut()
+    if (recovering) { handlers.onRecovery(); return }
+    if (session) handlers.onSignIn(session.user)
+    else handlers.onSignOut()
   })
+}
+
+export async function requestPasswordReset() {
+  const email = document.getElementById('auth-email').value.trim()
+  if (!email) { showAuthErr('Enter your email above first, then click “Forgot password?”'); return }
+  const { error } = await sb.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.origin
+  })
+  if (error) { showAuthErr(error.message); return }
+  showAuthErr('Password reset link sent — check your email.')
+}
+
+export async function updatePassword() {
+  const pw = document.getElementById('recovery-password').value
+  const btn = document.getElementById('recovery-btn')
+  document.getElementById('recovery-err').style.display = 'none'
+
+  if (!pw || pw.length < 6) { showRecoveryErr('Password must be at least 6 characters.'); return }
+
+  btn.disabled = true; btn.textContent = 'Updating…'
+  const { data, error } = await sb.auth.updateUser({ password: pw })
+  btn.disabled = false; btn.textContent = 'Update password'
+
+  if (error) { showRecoveryErr(error.message); return }
+  recovering = false
+  history.replaceState(null, '', window.location.pathname) // strip the recovery hash
+  handlers.onSignIn(data.user)
 }
 
 export async function handleAuth() {
@@ -55,6 +97,12 @@ export function toggleAuthMode() {
 
 function showAuthErr(msg) {
   const el = document.getElementById('auth-err')
+  el.textContent = msg
+  el.style.display = 'block'
+}
+
+function showRecoveryErr(msg) {
+  const el = document.getElementById('recovery-err')
   el.textContent = msg
   el.style.display = 'block'
 }
