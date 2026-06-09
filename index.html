@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Timesheet</title>
+  <link rel="stylesheet" href="/src/style.css">
+</head>
+<body>
+
+  <!-- LOADING -->
+  <div class="loading-overlay" id="loading">
+    <div class="spinner"></div>
+    <p>Loading…</p>
+  </div>
+
+  <!-- AUTH SCREEN -->
+  <div id="auth-screen">
+    <div class="auth-card">
+      <div class="auth-logo">
+        <svg viewBox="0 0 20 20"><path d="M3 3h6v6H3zM11 3h6v6h-6zM3 11h6v6H3zM11 11h6v6h-6z"/></svg>
+      </div>
+      <h1>Timesheet</h1>
+      <p>Sign in to access your timesheets</p>
+      <div class="field">
+        <label>Email</label>
+        <input type="email" id="auth-email" placeholder="you@example.com" autocomplete="email">
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input type="password" id="auth-password" placeholder="••••••••" autocomplete="current-password">
+      </div>
+      <div class="auth-err" id="auth-err"></div>
+      <button class="btn btn-primary btn-full" id="auth-btn" onclick="handleAuth()">Sign in</button>
+      <div class="auth-toggle">
+        <span id="auth-toggle-text">Don't have an account?</span>
+        <a onclick="toggleAuthMode()"> <span id="auth-toggle-link">Sign up</span></a>
+      </div>
+    </div>
+  </div>
+
+  <!-- APP SCREEN -->
+  <div id="app-screen">
+    <div class="topbar">
+      <div class="topbar-logo">
+        <svg viewBox="0 0 20 20"><path d="M3 3h6v6H3zM11 3h6v6h-6zM3 11h6v6H3zM11 11h6v6h-6z"/></svg>
+      </div>
+      <h1>Timesheet</h1>
+      <span class="sync-indicator" id="sync-status"></span>
+      <div class="topbar-actions">
+        <span class="topbar-user" id="topbar-user"></span>
+        <button class="btn btn-success btn-sm" onclick="exportExcel()">⬇ Export Excel</button>
+        <button class="btn btn-primary btn-sm" onclick="submitSheet()">✓ Submit</button>
+        <button class="btn btn-sm" onclick="signOut()">Sign out</button>
+      </div>
+    </div>
+
+    <div class="container">
+      <div class="week-nav">
+        <div>
+          <div class="week-label" id="week-label"></div>
+          <div class="week-sub" id="sheet-id"></div>
+        </div>
+        <div class="nav-btns">
+          <button class="btn btn-sm" onclick="prevWeek()">← Prev</button>
+          <button class="btn btn-sm" onclick="goToday()">Today</button>
+          <button class="btn btn-sm" onclick="nextWeek()">Next →</button>
+        </div>
+      </div>
+
+      <div class="sheet-card">
+        <div class="sheet-meta">
+          <div class="meta-item"><label>Status</label><span id="status-badge" class="status-badge">Draft</span></div>
+          <div class="meta-item"><label>Start</label><span id="meta-start"></span></div>
+          <div class="meta-item"><label>End</label><span id="meta-end"></span></div>
+          <div class="meta-item"><label>Total Hours</label><span id="meta-total">0.00</span></div>
+        </div>
+        <div class="grid-wrap">
+          <table id="ts-table">
+            <thead id="ts-thead"></thead>
+            <tbody id="ts-tbody"></tbody>
+            <tfoot id="ts-tfoot"></tfoot>
+          </table>
+        </div>
+        <div class="add-row-bar">
+          <button class="btn btn-sm" onclick="addRow()">+ Add Row</button>
+        </div>
+      </div>
+
+      <div class="summary-bar">
+        <div class="summary-item"><label>This week</label><div class="val" id="sum-week">0.0 h</div></div>
+        <div class="summary-divider"></div>
+        <div class="summary-item"><label>This month</label><div class="val" id="sum-month">0.0 h</div></div>
+        <div class="summary-divider"></div>
+        <div class="summary-item"><label>All time</label><div class="val" id="sum-total">0.0 h</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
