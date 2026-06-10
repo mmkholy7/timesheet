@@ -145,6 +145,16 @@
         <header class="app-header">
           <div class="header-title" id="header-title">Dashboard</div>
           <div class="header-actions">
+            <div class="notif" id="notif" style="display:none">
+              <button class="notif-btn" onclick="toggleNotif()" aria-label="Pending approvals">
+                <svg viewBox="0 0 20 20"><path d="M10 2a5 5 0 00-5 5v3L3.5 12.5a1 1 0 00.8 1.5h11.4a1 1 0 00.8-1.5L15 10V7a5 5 0 00-5-5zm0 16a2.5 2.5 0 002.45-2h-4.9A2.5 2.5 0 0010 18z"/></svg>
+                <span class="notif-badge" id="notif-badge" style="display:none">0</span>
+              </button>
+              <div class="notif-panel" id="notif-panel">
+                <div class="notif-head">Pending approvals</div>
+                <div class="notif-list" id="notif-list"></div>
+              </div>
+            </div>
             <span class="sync-indicator" id="sync-status"></span>
             <button class="btn btn-sm btn-ghost" onclick="exportExcel()">⬇ Export Excel</button>
             <button class="btn btn-sm btn-ghost" onclick="openSendPdf()">✉ Email PDF</button>

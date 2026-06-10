@@ -7,6 +7,7 @@ import { openSendPdf, closeSendPdf, sendPdfQuick, sendPdfNow } from './sendpdf.j
 import { renderDashboard } from './dashboard.js'
 import { renderApprovals } from './approvals.js'
 import { renderAdmin } from './admin.js'
+import { refreshNotifications, toggleNotif } from './notify.js'
 import { showLoading, hideLoading, showAuth, showApp, showRecovery, toast } from './ui.js'
 
 const VIEWS = {
@@ -31,11 +32,13 @@ function setView(view) {
 window.setView = setView
 window.comingSoon = (name) => toast(`${name} is coming in the next update.`)
 
-// Role-gated nav: managers+admins see Approvals; admins also see Admin
+// Role-gated nav: managers+admins see Approvals (+ the notification bell);
+// admins also see Admin.
 export function applyRoleNav(role) {
-  document.getElementById('nav-approvals').style.display =
-    (role === 'manager' || role === 'admin') ? '' : 'none'
+  const canApprove = role === 'manager' || role === 'admin'
+  document.getElementById('nav-approvals').style.display = canApprove ? '' : 'none'
   document.getElementById('nav-admin').style.display = (role === 'admin') ? '' : 'none'
+  document.getElementById('notif').style.display = canApprove ? '' : 'none'
 }
 
 // ── Wire up global button handlers (called from HTML onclick) ──
@@ -56,6 +59,7 @@ window.nextWeek = nextWeek
 window.goToday = goToday
 window.toggleWeekend = toggleWeekend
 window.exportExcel = exportExcel
+window.toggleNotif = toggleNotif
 window.openSendPdf = openSendPdf
 window.closeSendPdf = closeSendPdf
 window.sendPdfQuick = sendPdfQuick
@@ -75,11 +79,18 @@ initAuth({
     hideLoading()
     render()
     setView('dashboard')
+    // Approvers: load the pending-approval bell now, then keep it fresh.
+    if (prof?.role === 'manager' || prof?.role === 'admin') {
+      refreshNotifications()
+      clearInterval(window._notifTimer)
+      window._notifTimer = setInterval(refreshNotifications, 60000)
+    }
     // Diagnostic: type `whoami` in the browser console to see your loaded role
     window.whoami = { email: user.email, role: prof?.role }
     console.log('[timesheet] signed in as', user.email, '· role:', prof?.role)
   },
   onSignOut: () => {
+    clearInterval(window._notifTimer)
     clearSheets()
     hideLoading()
     showAuth()

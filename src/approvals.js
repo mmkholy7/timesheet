@@ -2,6 +2,7 @@ import { loadApprovals, loadApprovalEntries, decideApproval, profile } from './d
 import { toast } from './ui.js'
 import { buildTimesheetPDF } from './pdf.js'
 import { sb } from './supabase.js'
+import { refreshNotifications } from './notify.js'
 
 function esc(s) { return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;') }
 function rowHours(h) { return (h || []).reduce((a, x) => a + (+x || 0), 0) }
@@ -127,6 +128,7 @@ async function decide(btn, approval, act) {
 
   toast(`Timesheet ${decision.toLowerCase()} ✓`)
   renderApprovals()
+  refreshNotifications()   // update the pending-approval bell
 }
 
 async function emailApproval(approval, result) {
