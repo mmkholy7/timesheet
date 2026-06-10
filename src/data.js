@@ -2,6 +2,8 @@ import { sb } from './supabase.js'
 import { toast, setSyncStatus } from './ui.js'
 
 export let allSheets = {}
+export let projects = []      // active projects: [{ id, code, description, customer_id, customers:{name} }]
+export let profile = null     // current user's profile row: { id, email, role }
 let currentUserId = null
 let saveTimer = null
 
@@ -9,8 +11,37 @@ export function setUser(userId) {
   currentUserId = userId
 }
 
+// Load the signed-in user's profile (role gates admin/manager features later)
+export async function loadProfile() {
+  const { data, error } = await sb
+    .from('profiles')
+    .select('id, email, full_name, role')
+    .eq('id', currentUserId)
+    .single()
+  if (error) { toast('Error loading profile: ' + error.message); return null }
+  profile = data
+  return profile
+}
+
+// Load the active project codes used to populate the dropdown
+export async function loadProjects() {
+  const { data, error } = await sb
+    .from('projects')
+    .select('id, code, description, customer_id, customers(name)')
+    .eq('active', true)
+    .order('code')
+  if (error) { toast('Error loading projects: ' + error.message); return }
+  projects = data || []
+}
+
 export function newRow() {
-  return { rate: 'Regular - Hourly', proj: '', hours: [0, 0, 0, 0, 0, 0, 0] }
+  const first = projects[0]
+  return {
+    rate: 'Regular - Hourly',
+    project_id: first ? first.id : null,
+    proj: first ? first.code : '',
+    hours: [0, 0, 0, 0, 0, 0, 0]
+  }
 }
 
 export function getLocalSheet(wk) {
@@ -20,20 +51,34 @@ export function getLocalSheet(wk) {
   return allSheets[wk]
 }
 
+// Postgres numeric[] can arrive as strings; coerce to a clean 7-number array
+function normalizeHours(h) {
+  const arr = Array.isArray(h) ? h.map(Number) : []
+  while (arr.length < 7) arr.push(0)
+  return arr.slice(0, 7).map(n => (Number.isFinite(n) ? n : 0))
+}
+
 export async function loadAllSheets() {
   const { data, error } = await sb
     .from('timesheets')
-    .select('*')
+    .select('id, week_start, status, timesheet_entries(id, rate, hours, project_id, projects(code))')
     .eq('user_id', currentUserId)
 
   if (error) { toast('Error loading data: ' + error.message); return }
 
   allSheets = {}
   ;(data || []).forEach(row => {
+    const rows = (row.timesheet_entries || []).map(e => ({
+      entry_id: e.id,
+      rate: e.rate,
+      project_id: e.project_id,
+      proj: e.projects?.code || '',
+      hours: normalizeHours(e.hours)
+    }))
     allSheets[row.week_start] = {
       id: row.id,
       status: row.status,
-      rows: row.rows?.length ? row.rows : [newRow()],
+      rows: rows.length ? rows : [newRow()],
       _dirty: false
     }
   })
@@ -45,25 +90,53 @@ export async function saveSheet(wk) {
 
   setSyncStatus('saving', 'Saving…')
 
-  const payload = {
+  // 1) Upsert the week container
+  const tsPayload = {
     user_id: currentUserId,
     week_start: wk,
     status: sheet.status,
-    rows: sheet.rows,
     updated_at: new Date().toISOString()
   }
+  const tsRes = sheet.id
+    ? await sb.from('timesheets').update(tsPayload).eq('id', sheet.id).select().single()
+    : await sb.from('timesheets').insert(tsPayload).select().single()
 
-  const result = sheet.id
-    ? await sb.from('timesheets').update(payload).eq('id', sheet.id).select().single()
-    : await sb.from('timesheets').insert(payload).select().single()
-
-  if (result.error) {
+  if (tsRes.error) {
     setSyncStatus('error', 'Save failed')
-    toast('Save error: ' + result.error.message)
+    toast('Save error: ' + tsRes.error.message)
+    return
+  }
+  sheet.id = tsRes.data.id
+
+  // 2) Replace the entries (simplest reliable sync for small sheets)
+  const { error: delErr } = await sb
+    .from('timesheet_entries')
+    .delete()
+    .eq('timesheet_id', sheet.id)
+  if (delErr) {
+    setSyncStatus('error', 'Save failed')
+    toast('Save error: ' + delErr.message)
     return
   }
 
-  sheet.id = result.data.id
+  const entries = sheet.rows
+    .filter(r => r.project_id)                 // a project is required by the schema
+    .map(r => ({
+      timesheet_id: sheet.id,
+      project_id: r.project_id,
+      rate: r.rate,
+      hours: r.hours
+    }))
+
+  if (entries.length) {
+    const { error: insErr } = await sb.from('timesheet_entries').insert(entries)
+    if (insErr) {
+      setSyncStatus('error', 'Save failed')
+      toast('Save error: ' + insErr.message)
+      return
+    }
+  }
+
   sheet._dirty = false
   setSyncStatus('saved', 'Saved ✓')
   setTimeout(() => setSyncStatus('', ''), 2000)
@@ -77,4 +150,5 @@ export function scheduleSave(wk) {
 export function clearSheets() {
   allSheets = {}
   currentUserId = null
+  profile = null
 }

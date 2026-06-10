@@ -1,6 +1,6 @@
 import './style.css'
 import { initAuth, handleAuth, signOut, toggleAuthMode, requestPasswordReset, updatePassword } from './auth.js'
-import { loadAllSheets, setUser, clearSheets } from './data.js'
+import { loadAllSheets, loadProfile, loadProjects, setUser, clearSheets } from './data.js'
 import { render, addRow, submitSheet, prevWeek, nextWeek, goToday } from './timesheet.js'
 import { exportExcel } from './export.js'
 import { showLoading, hideLoading, showAuth, showApp, showRecovery } from './ui.js'
@@ -25,6 +25,8 @@ initAuth({
   onSignIn: async (user) => {
     setUser(user.id)
     showApp(user.email)
+    await loadProfile()
+    await loadProjects()
     await loadAllSheets()
     hideLoading()
     render()

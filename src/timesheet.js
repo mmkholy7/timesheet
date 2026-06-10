@@ -1,4 +1,4 @@
-import { allSheets, getLocalSheet, newRow, scheduleSave, saveSheet } from './data.js'
+import { allSheets, getLocalSheet, newRow, scheduleSave, saveSheet, projects } from './data.js'
 import { toast } from './ui.js'
 
 const RATES = ['Regular - Hourly', 'Overtime - Hourly', 'Double Time', 'Stat Holiday']
@@ -75,7 +75,9 @@ export function render() {
       `<option${r === row.rate ? ' selected' : ''}>${r}</option>`).join('')}</select></td>`
     td = `<td><select class="rate-select" data-ri="${ri}">${RATES.map(r =>
       `<option${r === row.rate ? ' selected' : ''}>${r}</option>`).join('')}</select></td>`
-    td += `<td><input class="proj-input" type="text" value="${escHtml(row.proj)}" placeholder="Project code / name" data-ri="${ri}"></td>`
+    const projOpts = projects.map(p =>
+      `<option value="${p.id}"${p.id === row.project_id ? ' selected' : ''}>${escHtml(p.code)}</option>`).join('')
+    td += `<td><select class="proj-select" data-ri="${ri}"><option value="">— select project —</option>${projOpts}</select></td>`
     row.hours.forEach((h, di) => {
       td += `<td><input class="hours-input${h > 0 ? ' has-value' : ''}" type="number" min="0" max="24" step="0.25" value="${h || ''}" placeholder="0" data-ri="${ri}" data-di="${di}"></td>`
     })
@@ -113,10 +115,14 @@ function bindTableEvents() {
     })
   })
 
-  document.querySelectorAll('.proj-input').forEach(el => {
-    el.addEventListener('input', e => {
+  document.querySelectorAll('.proj-select').forEach(el => {
+    el.addEventListener('change', e => {
       const ri = +e.target.dataset.ri
-      getLocalSheet(wk).rows[ri].proj = e.target.value
+      const pid = e.target.value || null
+      const row = getLocalSheet(wk).rows[ri]
+      row.project_id = pid
+      const p = projects.find(x => x.id === pid)
+      row.proj = p ? p.code : ''
       scheduleSave(wk)
     })
   })
