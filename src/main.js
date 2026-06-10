@@ -1,5 +1,5 @@
 import './style.css'
-import { initAuth, handleAuth, signOut, toggleAuthMode, requestPasswordReset, updatePassword, signInWithGoogle } from './auth.js'
+import { initAuth, handleAuth, signOut, toggleAuthMode, requestPasswordReset, updatePassword, signInWithGoogle, signInWithMicrosoft } from './auth.js'
 import { loadAllSheets, loadProfile, loadProjects, setUser, clearSheets } from './data.js'
 import { render, addRow, submitSheet, prevWeek, nextWeek, goToday } from './timesheet.js'
 import { exportExcel } from './export.js'
@@ -25,6 +25,7 @@ window.toggleAuthMode = toggleAuthMode
 window.requestPasswordReset = requestPasswordReset
 window.updatePassword = updatePassword
 window.signInWithGoogle = signInWithGoogle
+window.signInWithMicrosoft = signInWithMicrosoft
 window.signOut = async () => { await signOut(); }
 window.addRow = addRow
 window.submitSheet = submitSheet

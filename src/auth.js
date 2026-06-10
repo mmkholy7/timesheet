@@ -93,6 +93,14 @@ export async function signInWithGoogle() {
   // supabase-js picks up the session and fires SIGNED_IN.
 }
 
+export async function signInWithMicrosoft() {
+  const { error } = await sb.auth.signInWithOAuth({
+    provider: 'azure',                              // Supabase's id for Microsoft / Entra
+    options: { redirectTo: window.location.origin, scopes: 'email' }
+  })
+  if (error) showAuthErr(error.message)
+}
+
 export async function signOut() {
   await sb.auth.signOut()
 }
