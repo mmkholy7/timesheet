@@ -152,3 +152,70 @@ export function clearSheets() {
   currentUserId = null
   profile = null
 }
+
+// ── Approvals ──
+
+// Distinct customers present in a sheet's entries (each needs its own approval)
+function customersInSheet(sheet) {
+  const ids = new Set()
+  sheet.rows.forEach(r => {
+    const p = projects.find(x => x.id === r.project_id)
+    if (p) ids.add(p.customer_id)
+  })
+  return [...ids]
+}
+
+// On submit, ensure a Pending approval row exists per customer in the sheet
+export async function createApprovalsForSheet(wk) {
+  const sheet = allSheets[wk]
+  if (!sheet || !sheet.id) return
+  const rows = customersInSheet(sheet).map(customer_id => ({
+    timesheet_id: sheet.id,
+    customer_id,
+    status: 'Pending'
+  }))
+  if (!rows.length) return
+  // Insert any missing approval rows (ON CONFLICT DO NOTHING). We don't update
+  // existing ones here because employees can't write approval status (RLS).
+  const { error } = await sb
+    .from('approvals')
+    .upsert(rows, { onConflict: 'timesheet_id,customer_id', ignoreDuplicates: true })
+  if (error) toast('Approval routing error: ' + error.message)
+}
+
+// Manager view: pending approvals visible to the current user (RLS-scoped)
+export async function loadApprovals() {
+  const { data, error } = await sb
+    .from('approvals')
+    .select('id, status, customer_id, decided_at, customers(name), timesheets(id, week_start, user_id, profiles(email, full_name))')
+    .order('status', { ascending: true })
+  if (error) { toast('Error loading approvals: ' + error.message); return [] }
+  return data || []
+}
+
+// Load the entries the manager is allowed to see for one approval (their customer only)
+export async function loadApprovalEntries(timesheetId, customerId) {
+  const { data, error } = await sb
+    .from('timesheet_entries')
+    .select('rate, hours, projects(code, customer_id)')
+    .eq('timesheet_id', timesheetId)
+  if (error) { toast('Error loading entries: ' + error.message); return [] }
+  // RLS already restricts to this manager's customers; filter to this approval's customer
+  return (data || []).filter(e => e.projects?.customer_id === customerId)
+}
+
+export async function decideApproval(approvalId, decision, comment = null) {
+  const { data, error } = await sb
+    .from('approvals')
+    .update({
+      status: decision,                 // 'Approved' | 'Rejected'
+      decided_by: currentUserId,
+      decided_at: new Date().toISOString(),
+      comment
+    })
+    .eq('id', approvalId)
+    .select('id, decided_at, customer_id, timesheets(id, week_start, user_id)')
+    .single()
+  if (error) { toast('Decision failed: ' + error.message); return null }
+  return data
+}

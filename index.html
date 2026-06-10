@@ -117,9 +117,9 @@
             <svg viewBox="0 0 20 20"><path d="M2 4h16v3H2zM2 8.5h16v3H2zM2 13h16v3H2z"/></svg>
             <span>Timesheet</span>
           </a>
-          <a class="nav-item" onclick="comingSoon('Approvals')">
+          <a class="nav-item" id="nav-approvals" style="display:none" onclick="setView('approvals')">
             <svg viewBox="0 0 20 20"><path d="M10 1a9 9 0 100 18 9 9 0 000-18zm-1 12.5l-3.5-3.5L7 8.5l2 2 4.5-4.5L15 7.5z"/></svg>
-            <span>Approvals</span><span class="nav-soon">Soon</span>
+            <span>Approvals</span>
           </a>
           <a class="nav-item" onclick="comingSoon('Projects')">
             <svg viewBox="0 0 20 20"><path d="M2 5a1 1 0 011-1h4l2 2h6a1 1 0 011 1v7a1 1 0 01-1 1H3a1 1 0 01-1-1z"/></svg>
@@ -176,6 +176,11 @@
           <table class="recent-table"><tbody id="recent-weeks"></tbody></table>
         </div>
         <div id="dash-empty" class="dash-empty">No hours logged yet — add some on the Timesheet tab.</div>
+      </div>
+
+      <!-- APPROVALS -->
+      <div id="approvals-view">
+        <div id="approvals-list"></div>
       </div>
 
       <!-- TIMESHEET -->

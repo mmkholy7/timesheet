@@ -123,6 +123,20 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .rt-bar-fill { height: 100%; background: var(--accent); border-radius: 4px; }
 .recent-table .rt-hours { text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
 
+/* ── APPROVALS ── */
+#approvals-view { display: none; }
+#approvals-view.visible { display: block; }
+.approval-card { background: #fff; border: 1px solid #e5e5e3; border-radius: 14px; padding: 18px 20px; margin-bottom: 14px; }
+.approval-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.approval-emp { font-size: 15px; font-weight: 700; }
+.approval-sub { font-size: 12px; color: #6b7280; margin-top: 3px; }
+.approval-actions { display: flex; gap: 8px; flex-shrink: 0; }
+.approval-entries { width: 100%; font-size: 12px; border-top: 1px solid #f0f0ee; }
+.approval-entries th { text-align: left; padding: 8px 6px; font-size: 10px; text-transform: uppercase; letter-spacing: .05em; color: #9ca3af; font-weight: 600; }
+.approval-entries td { padding: 7px 6px; border-bottom: 1px solid #f5f5f4; }
+.approval-entries tr:last-child td { border-bottom: none; }
+.approval-entries .ae-hrs { text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
 @media (max-width: 1000px) {
   .app-shell { grid-template-columns: 1fr; }
   .sidebar { position: relative; height: auto; flex-direction: row; align-items: center; gap: 12px; }

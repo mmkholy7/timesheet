@@ -1,5 +1,6 @@
-import { allSheets, getLocalSheet, newRow, scheduleSave, saveSheet, projects } from './data.js'
+import { allSheets, getLocalSheet, newRow, scheduleSave, saveSheet, projects, createApprovalsForSheet } from './data.js'
 import { toast } from './ui.js'
+import { sb } from './supabase.js'
 
 const RATES = ['Regular - Hourly', 'Overtime - Hourly', 'Double Time', 'Stat Holiday']
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
@@ -181,10 +182,17 @@ export async function submitSheet() {
   const wk = weekKey(currentWeekStart)
   const sheet = getLocalSheet(wk)
   if (sheet.status === 'Submitted') { toast('Already submitted.'); return }
+  if (!sheet.rows.some(r => r.project_id && r.hours.some(h => +h > 0))) {
+    toast('Add hours to a project before submitting.'); return
+  }
   sheet.status = 'Submitted'
   await saveSheet(wk)
+  await createApprovalsForSheet(wk)           // route to approver(s) per customer
+  try {
+    await sb.functions.invoke('notify-submission', { body: { timesheet_id: sheet.id } })
+  } catch { /* email service optional until Resend is configured */ }
   render()
-  toast('Timesheet submitted ✓')
+  toast('Submitted — your approver has been notified ✓')
 }
 
 export function prevWeek() {

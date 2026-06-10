@@ -4,20 +4,36 @@ import { loadAllSheets, loadProfile, loadProjects, setUser, clearSheets } from '
 import { render, addRow, submitSheet, prevWeek, nextWeek, goToday } from './timesheet.js'
 import { exportExcel } from './export.js'
 import { renderDashboard } from './dashboard.js'
+import { renderApprovals } from './approvals.js'
+import { profile } from './data.js'
 import { showLoading, hideLoading, showAuth, showApp, showRecovery, toast } from './ui.js'
+
+const VIEWS = {
+  dashboard: { el: 'dashboard-view', nav: 'nav-dashboard', title: 'Dashboard' },
+  timesheet: { el: 'timesheet-view', nav: 'nav-timesheet', title: 'Timesheet' },
+  approvals: { el: 'approvals-view', nav: 'nav-approvals', title: 'Approvals' }
+}
 
 // ── Sidebar view switching ──
 function setView(view) {
-  const isDash = view === 'dashboard'
-  document.getElementById('dashboard-view').classList.toggle('visible', isDash)
-  document.getElementById('timesheet-view').classList.toggle('visible', !isDash)
-  document.getElementById('nav-dashboard').classList.toggle('active', isDash)
-  document.getElementById('nav-timesheet').classList.toggle('active', !isDash)
-  document.getElementById('header-title').textContent = isDash ? 'Dashboard' : 'Timesheet'
-  if (isDash) renderDashboard()
+  Object.entries(VIEWS).forEach(([k, v]) => {
+    document.getElementById(v.el).classList.toggle('visible', k === view)
+    const nav = document.getElementById(v.nav)
+    if (nav) nav.classList.toggle('active', k === view)
+  })
+  document.getElementById('header-title').textContent = VIEWS[view].title
+  if (view === 'dashboard') renderDashboard()
+  if (view === 'approvals') renderApprovals()
 }
 window.setView = setView
 window.comingSoon = (name) => toast(`${name} is coming in the next update.`)
+
+// Show the Approvals nav only for managers/admins
+export function applyRoleNav() {
+  const role = profile?.role
+  document.getElementById('nav-approvals').style.display =
+    (role === 'manager' || role === 'admin') ? '' : 'none'
+}
 
 // ── Wire up global button handlers (called from HTML onclick) ──
 window.handleAuth = handleAuth
@@ -44,6 +60,7 @@ initAuth({
     await loadProfile()
     await loadProjects()
     await loadAllSheets()
+    applyRoleNav()
     hideLoading()
     render()
     setView('dashboard')
