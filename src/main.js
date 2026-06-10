@@ -1,6 +1,6 @@
 import './style.css'
 import { initAuth, handleAuth, signOut, toggleAuthMode, requestPasswordReset, updatePassword, signInWithGoogle, signInWithMicrosoft, requestEmailCode, verifyEmailCode } from './auth.js'
-import { loadAllSheets, loadProfile, loadProjects, setUser, clearSheets } from './data.js'
+import { loadAllSheets, loadProfile, loadProjects, setUser, clearSheets, logAction } from './data.js'
 import { render, addRow, submitSheet, submitAndSend, prevWeek, nextWeek, goToday, toggleWeekend } from './timesheet.js'
 import { exportExcel } from './export.js'
 import { openSendPdf, closeSendPdf, sendPdfQuick, sendPdfNow } from './sendpdf.js'
@@ -53,7 +53,10 @@ window.verifyEmailCode = verifyEmailCode
 window.updatePassword = updatePassword
 window.signInWithGoogle = signInWithGoogle
 window.signInWithMicrosoft = signInWithMicrosoft
-window.signOut = async () => { await signOut(); }
+window.signOut = async () => {
+  await logAction('auth: signed out', 'session')   // log while the session is still valid
+  await signOut()
+}
 window.addRow = addRow
 window.submitSheet = submitSheet
 window.submitAndSend = submitAndSend
@@ -82,6 +85,12 @@ initAuth({
     hideLoading()
     render()
     setView('dashboard')
+    // Log the sign-in once per browser session (a plain reload reuses the
+    // session, so it shouldn't record a new login).
+    if (!sessionStorage.getItem('ts_login_logged')) {
+      sessionStorage.setItem('ts_login_logged', '1')
+      logAction('auth: signed in', 'session')
+    }
     // Approvers: load the pending-approval bell now, then keep it fresh.
     if (prof?.role === 'manager' || prof?.role === 'admin') {
       refreshNotifications()
@@ -94,6 +103,7 @@ initAuth({
   },
   onSignOut: () => {
     clearInterval(window._notifTimer)
+    sessionStorage.removeItem('ts_login_logged')   // so the next sign-in re-logs
     clearSheets()
     hideLoading()
     showAuth()
