@@ -69,6 +69,9 @@ initAuth({
     hideLoading()
     render()
     setView('dashboard')
+    // Diagnostic: type `whoami` in the browser console to see your loaded role
+    window.whoami = { email: user.email, role: profile?.role }
+    console.log('[timesheet] signed in as', user.email, '· role:', profile?.role)
   },
   onSignOut: () => {
     clearSheets()
