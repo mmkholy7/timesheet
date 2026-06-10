@@ -2,8 +2,10 @@ import Chart from 'chart.js/auto'
 import { allSheets } from './data.js'
 import { weekKey, fmtShort, goToWeek } from './timesheet.js'
 
-// B&W + indigo accent: an indigo ramp followed by a neutral grey ramp
-const PALETTE = ['#4f46e5', '#6366f1', '#818cf8', '#a5b4fc', '#c7d2fe', '#3f3f46', '#71717a', '#a1a1aa', '#d4d4d8', '#e4e4e7']
+// WSP red ramp followed by a neutral grey ramp (reads well on the dark theme)
+const PALETTE = ['#e0241b', '#f0473b', '#f76b60', '#fb8e85', '#fdb0a9', '#5a6373', '#7b8494', '#9aa2b0', '#b9bfca', '#d4d8df']
+const GRID = '#232a37'
+const TICK = '#7b8494'
 
 let charts = []
 
@@ -71,7 +73,7 @@ export function renderDashboard() {
     type: 'bar',
     data: {
       labels: recent.map(w => fmtShort(new Date(w.wk))),
-      datasets: [{ data: recent.map(w => w.hrs), backgroundColor: '#6366f1', borderRadius: 6, maxBarThickness: 46 }]
+      datasets: [{ data: recent.map(w => w.hrs), backgroundColor: '#e0241b', borderRadius: 6, maxBarThickness: 46 }]
     },
     options: {
       ...baseOpts,
@@ -88,8 +90,8 @@ export function renderDashboard() {
         evt.native.target.style.cursor = elements.length ? 'pointer' : 'default'
       },
       scales: {
-        y: { beginAtZero: true, grid: { color: '#f1f1f0' }, ticks: { color: '#9ca3af' } },
-        x: { grid: { display: false }, ticks: { color: '#9ca3af' } }
+        y: { beginAtZero: true, grid: { color: GRID }, ticks: { color: TICK } },
+        x: { grid: { display: false }, ticks: { color: TICK } }
       }
     }
   }))
@@ -101,13 +103,13 @@ export function renderDashboard() {
       type: 'doughnut',
       data: {
         labels: entries.map(([k]) => k.split(' - ')[0]),     // short label
-        datasets: [{ data: entries.map(([, v]) => v), backgroundColor: PALETTE, borderWidth: 0 }]
+        datasets: [{ data: entries.map(([, v]) => v), backgroundColor: PALETTE, borderColor: '#11151e', borderWidth: 2 }]
       },
       options: {
         ...baseOpts,
         cutout: '62%',
         plugins: {
-          legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 }, color: '#6b7280' } },
+          legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 }, color: '#b3bac7' } },
           tooltip: { callbacks: { label: c => ` ${entries[c.dataIndex][0]}: ${c.parsed.toFixed(1)} h` } }
         }
       }

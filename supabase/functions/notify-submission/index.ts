@@ -80,7 +80,7 @@ Deno.serve(async (req) => {
           `<div style="font-family:system-ui,sans-serif;font-size:14px;color:#1c1c1a">
              <p><strong>${employeeName}</strong> submitted a timesheet for project
              <strong>${projectCode}</strong> (week of <strong>${ts.week_start}</strong>) and it is awaiting your approval.</p>
-             <p><a href="${APP_URL}" style="display:inline-block;background:#4f46e5;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none">Review &amp; approve &rarr;</a></p>
+             <p><a href="${APP_URL}" style="display:inline-block;background:#e0241b;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none">Review &amp; approve &rarr;</a></p>
            </div>`
         )
         notified++
