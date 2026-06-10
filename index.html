@@ -130,6 +130,10 @@
             <svg viewBox="0 0 20 20"><path d="M2 5a1 1 0 011-1h4l2 2h6a1 1 0 011 1v7a1 1 0 01-1 1H3a1 1 0 01-1-1z"/></svg>
             <span>Admin</span>
           </a>
+          <a class="nav-item" id="nav-logs" style="display:none" onclick="setView('logs')">
+            <svg viewBox="0 0 20 20"><path d="M4 3h12v2H4zM4 7h12v2H4zM4 11h12v2H4zM4 15h8v2H4z"/></svg>
+            <span>Activity Log</span>
+          </a>
         </nav>
         <div class="sidebar-foot">
           <div class="user-chip">
@@ -217,6 +221,10 @@
           <p class="admin-desc">Add or deactivate the project codes employees pick from.</p>
           <div id="admin-projects"></div>
         </div>
+      </div>
+
+      <!-- ACTIVITY LOG -->
+      <div id="logs-view">
         <div class="admin-section">
           <h3 class="admin-h">Activity log</h3>
           <p class="admin-desc">Who did what — submissions, approvals, user &amp; project changes — with the client IP. Newest first (last 200).</p>

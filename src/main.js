@@ -6,7 +6,7 @@ import { exportExcel } from './export.js'
 import { openSendPdf, closeSendPdf, sendPdfQuick, sendPdfNow } from './sendpdf.js'
 import { renderDashboard } from './dashboard.js'
 import { renderApprovals } from './approvals.js'
-import { renderAdmin } from './admin.js'
+import { renderAdmin, renderLogs } from './admin.js'
 import { refreshNotifications, toggleNotif } from './notify.js'
 import { showLoading, hideLoading, showAuth, showApp, showRecovery, toast } from './ui.js'
 
@@ -14,7 +14,8 @@ const VIEWS = {
   dashboard: { el: 'dashboard-view', nav: 'nav-dashboard', title: 'Dashboard' },
   timesheet: { el: 'timesheet-view', nav: 'nav-timesheet', title: 'Timesheet' },
   approvals: { el: 'approvals-view', nav: 'nav-approvals', title: 'Approvals' },
-  admin: { el: 'admin-view', nav: 'nav-admin', title: 'Admin' }
+  admin: { el: 'admin-view', nav: 'nav-admin', title: 'Admin' },
+  logs: { el: 'logs-view', nav: 'nav-logs', title: 'Activity Log' }
 }
 
 // ── Sidebar view switching ──
@@ -28,6 +29,7 @@ function setView(view) {
   if (view === 'dashboard') renderDashboard()
   if (view === 'approvals') renderApprovals()
   if (view === 'admin') renderAdmin()
+  if (view === 'logs') renderLogs()
 }
 window.setView = setView
 window.comingSoon = (name) => toast(`${name} is coming in the next update.`)
@@ -38,6 +40,7 @@ export function applyRoleNav(role) {
   const canApprove = role === 'manager' || role === 'admin'
   document.getElementById('nav-approvals').style.display = canApprove ? '' : 'none'
   document.getElementById('nav-admin').style.display = (role === 'admin') ? '' : 'none'
+  document.getElementById('nav-logs').style.display = (role === 'admin') ? '' : 'none'
   document.getElementById('notif').style.display = canApprove ? '' : 'none'
 }
 

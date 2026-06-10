@@ -12,11 +12,11 @@ let profiles = [], customers = [], allProjects = []
 
 export async function renderAdmin() {
   ;[profiles, customers, allProjects] = await Promise.all([loadProfiles(), loadCustomers(), loadAllProjects()])
-  await Promise.all([renderUsers(), renderApprovers(), renderProjects(), renderLogs()])
+  await Promise.all([renderUsers(), renderApprovers(), renderProjects()])
 }
 
-// ── Activity log ──
-async function renderLogs() {
+// ── Activity log (its own page) ──
+export async function renderLogs() {
   const logs = await loadAuditLog()
   const fmt = (iso) => new Date(iso).toLocaleString(undefined, {
     month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit'
