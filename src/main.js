@@ -6,7 +6,6 @@ import { exportExcel } from './export.js'
 import { renderDashboard } from './dashboard.js'
 import { renderApprovals } from './approvals.js'
 import { renderAdmin } from './admin.js'
-import { profile } from './data.js'
 import { showLoading, hideLoading, showAuth, showApp, showRecovery, toast } from './ui.js'
 
 const VIEWS = {
@@ -32,8 +31,7 @@ window.setView = setView
 window.comingSoon = (name) => toast(`${name} is coming in the next update.`)
 
 // Role-gated nav: managers+admins see Approvals; admins also see Admin
-export function applyRoleNav() {
-  const role = profile?.role
+export function applyRoleNav(role) {
   document.getElementById('nav-approvals').style.display =
     (role === 'manager' || role === 'admin') ? '' : 'none'
   document.getElementById('nav-admin').style.display = (role === 'admin') ? '' : 'none'
@@ -62,16 +60,16 @@ initAuth({
   onSignIn: async (user) => {
     setUser(user.id)
     showApp(user.email)
-    await loadProfile()
+    const prof = await loadProfile()
     await loadProjects()
     await loadAllSheets()
-    applyRoleNav()
+    applyRoleNav(prof?.role)
     hideLoading()
     render()
     setView('dashboard')
     // Diagnostic: type `whoami` in the browser console to see your loaded role
-    window.whoami = { email: user.email, role: profile?.role }
-    console.log('[timesheet] signed in as', user.email, '· role:', profile?.role)
+    window.whoami = { email: user.email, role: prof?.role }
+    console.log('[timesheet] signed in as', user.email, '· role:', prof?.role)
   },
   onSignOut: () => {
     clearSheets()
