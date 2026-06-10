@@ -64,13 +64,18 @@ export function buildTimesheetPDF(meta, rows) {
     }
   })
 
-  // Approval / timestamp footer
+  // Approval / timestamp footer.
+  // Note: jsPDF's built-in fonts only support WinAnsi, so no unicode glyphs
+  // (✓, em dashes, etc.) — they corrupt the text. Plain ASCII only here.
   let y = doc.lastAutoTable.finalY + 28
   doc.setFontSize(10); doc.setTextColor(30)
   if (meta.status === 'Approved' && meta.approvedBy) {
-    doc.setFont('helvetica', 'bold'); doc.text('✓ Approved', 40, y)
+    const label = 'Approved'
+    doc.setFont('helvetica', 'bold'); doc.setTextColor(22, 163, 74)
+    doc.text(label, 40, y)
+    const lw = doc.getTextWidth(label)
     doc.setFont('helvetica', 'normal'); doc.setTextColor(90)
-    doc.text(`by ${meta.approvedBy}  ·  ${fmtStamp(meta.decidedAt)}`, 110, y)
+    doc.text(`by ${meta.approvedBy}  ·  ${fmtStamp(meta.decidedAt)}`, 40 + lw + 8, y)
     y += 18
   }
   doc.setTextColor(150); doc.setFontSize(8)

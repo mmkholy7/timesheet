@@ -155,10 +155,14 @@ export function clearSheets() {
 
 // ── Approvals ──
 
-// Distinct projects present in a sheet's entries (each needs its own approval)
+// Distinct projects that actually have hours logged (each needs its own
+// approval). Projects selected but left at 0h are skipped so they don't create
+// empty approvals / blank PDFs.
 function projectsInSheet(sheet) {
   const ids = new Set()
-  sheet.rows.forEach(r => { if (r.project_id) ids.add(r.project_id) })
+  sheet.rows.forEach(r => {
+    if (r.project_id && r.hours.some(h => +h > 0)) ids.add(r.project_id)
+  })
   return [...ids]
 }
 
