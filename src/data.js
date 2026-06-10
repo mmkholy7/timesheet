@@ -180,6 +180,19 @@ export async function createApprovalsForSheet(wk) {
   if (error) toast('Approval routing error: ' + error.message)
 }
 
+// The (employee_id:project_id) pairs the current user is the ASSIGNED approver
+// for. Used to scope the approval queue/bell to only what's assigned to them —
+// RLS also lets admins read every approval and lets a manager read their own
+// submissions, neither of which belong in a personal approval queue.
+export async function loadMyApproverKeys() {
+  const { data, error } = await sb
+    .from('approver_links')
+    .select('employee_id, project_id')
+    .eq('manager_id', currentUserId)
+  if (error) return new Set()
+  return new Set((data || []).map(l => `${l.employee_id}:${l.project_id}`))
+}
+
 // Manager view: pending approvals visible to the current user (RLS-scoped)
 export async function loadApprovals() {
   const { data, error } = await sb

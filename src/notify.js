@@ -1,4 +1,4 @@
-import { loadApprovals } from './data.js'
+import { loadApprovals, loadMyApproverKeys } from './data.js'
 
 function esc(s) { return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;') }
 
@@ -9,7 +9,9 @@ export async function refreshNotifications() {
   const bell = document.getElementById('notif')
   if (!bell || bell.style.display === 'none') return   // not an approver
 
-  const pending = (await loadApprovals()).filter(a => a.status === 'Pending')
+  const myKeys = await loadMyApproverKeys()
+  const pending = (await loadApprovals()).filter(a =>
+    a.status === 'Pending' && myKeys.has(`${a.timesheets?.user_id}:${a.project_id}`))
 
   const badge = document.getElementById('notif-badge')
   badge.textContent = pending.length

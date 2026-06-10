@@ -1,4 +1,4 @@
-import { loadApprovals, loadApprovalEntries, decideApproval, profile, logAction } from './data.js'
+import { loadApprovals, loadApprovalEntries, decideApproval, profile, logAction, loadMyApproverKeys } from './data.js'
 import { toast } from './ui.js'
 import { buildTimesheetPDF } from './pdf.js'
 import { sb } from './supabase.js'
@@ -19,7 +19,10 @@ export async function renderApprovals() {
   const list = document.getElementById('approvals-list')
   list.innerHTML = '<div class="dash-empty">Loading…</div>'
 
-  cache = await loadApprovals()
+  // Only what THIS user is the assigned approver for (not their own, not — for
+  // admins — everyone's).
+  const myKeys = await loadMyApproverKeys()
+  cache = (await loadApprovals()).filter(a => myKeys.has(`${a.timesheets?.user_id}:${a.project_id}`))
   // Load each approval's entries up front so cards + downloads have the detail.
   for (const a of cache) a._entries = await loadApprovalEntries(a.timesheets.id, a.project_id)
 
