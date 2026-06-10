@@ -8,6 +8,16 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
 
 export let currentWeekStart = getWeekStart(new Date())
 
+// Weekend (Sun = day index 0, Sat = day index 6) is hidden by default.
+let showWeekend = false
+function visibleDays() {
+  return showWeekend ? [0, 1, 2, 3, 4, 5, 6] : [1, 2, 3, 4, 5]
+}
+export function toggleWeekend() {
+  showWeekend = !showWeekend
+  render()
+}
+
 export function getWeekStart(d) {
   const dt = new Date(d)
   dt.setDate(dt.getDate() - dt.getDay())
@@ -55,9 +65,12 @@ export function render() {
   badge.textContent = sheet.status
   badge.className = 'status-badge' + (sheet.status === 'Submitted' ? ' submitted' : '')
 
+  const visible = visibleDays()
+
   // Header
   let hdr = '<tr><th style="min-width:155px">Rate</th><th style="min-width:210px">Project Code</th>'
-  days.forEach(d => {
+  days.forEach((d, di) => {
+    if (!visible.includes(di)) return
     const isToday = fmtDate(d) === today
     hdr += `<th><div class="day-col-header${isToday ? ' today' : ''}">
       <span class="day-name">${DAYS[d.getDay()]}</span>
@@ -80,6 +93,7 @@ export function render() {
       `<option value="${p.id}"${p.id === row.project_id ? ' selected' : ''}>${escHtml(p.code)}</option>`).join('')
     td += `<td><select class="proj-select" data-ri="${ri}"><option value="">— select project —</option>${projOpts}</select></td>`
     row.hours.forEach((h, di) => {
+      if (!visible.includes(di)) return
       td += `<td><input class="hours-input${h > 0 ? ' has-value' : ''}" type="number" min="0" max="24" step="0.25" value="${h || ''}" placeholder="0" data-ri="${ri}" data-di="${di}"></td>`
     })
     const rowTotal = row.hours.reduce((a, b) => a + (+b || 0), 0)
@@ -96,9 +110,12 @@ export function render() {
   document.getElementById('meta-total').textContent = grand.toFixed(2)
 
   let ft = '<tr class="tfoot-row"><td>Daily Total</td><td></td>'
-  colTotals.forEach(t => { ft += `<td>${t.toFixed(2)}</td>` })
+  colTotals.forEach((t, i) => { if (!visible.includes(i)) return; ft += `<td>${t.toFixed(2)}</td>` })
   ft += `<td>${grand.toFixed(2)}</td><td></td></tr>`
   document.getElementById('ts-tfoot').innerHTML = ft
+
+  const wkndBtn = document.getElementById('weekend-btn')
+  if (wkndBtn) wkndBtn.textContent = showWeekend ? '− Hide weekend' : '+ Show weekend'
 
   updateSummary()
   bindTableEvents()
