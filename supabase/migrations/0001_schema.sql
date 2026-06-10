@@ -251,9 +251,9 @@ insert into projects (customer_id, code, description)
 select c.id, v.code, v.description
 from customers c,
      (values
-        ('IDGC1000567 - INVEST_GLB_ISRC - IT Risk & Compliance - 26.03.04 - 2026_PROJECT_CTP-0',
+        ('IDGC1000567 - INVEST_GLB_ISRC - IT Risk & Compliance - 26.03.04 - 2026_PROJECT_CTP-04-Serv Hard-Cyber Transformation Program',
          'IT Risk & Compliance'),
-        ('IDCA1000166 - IDCA-CA010198-WSP-CORP-Quebec-Health & Safety-ProjDlvEx - 100 - Ove',
+        ('IDCA1000166 - IDCA-CA010198-WSP-CORP-Quebec-Health & Safety-ProjDlvEx - 100 - Overhead Expenses',
          'Health & Safety')
      ) as v(code, description)
 where c.name = 'WSP'
