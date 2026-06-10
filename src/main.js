@@ -1,5 +1,5 @@
 import './style.css'
-import { initAuth, handleAuth, signOut, toggleAuthMode, requestPasswordReset, updatePassword, signInWithGoogle, signInWithMicrosoft } from './auth.js'
+import { initAuth, handleAuth, signOut, toggleAuthMode, requestPasswordReset, updatePassword, signInWithGoogle, signInWithMicrosoft, requestEmailCode, verifyEmailCode } from './auth.js'
 import { loadAllSheets, loadProfile, loadProjects, setUser, clearSheets } from './data.js'
 import { render, addRow, submitSheet, submitAndSend, prevWeek, nextWeek, goToday, toggleWeekend } from './timesheet.js'
 import { exportExcel } from './export.js'
@@ -42,6 +42,8 @@ export function applyRoleNav(role) {
 window.handleAuth = handleAuth
 window.toggleAuthMode = toggleAuthMode
 window.requestPasswordReset = requestPasswordReset
+window.requestEmailCode = requestEmailCode
+window.verifyEmailCode = verifyEmailCode
 window.updatePassword = updatePassword
 window.signInWithGoogle = signInWithGoogle
 window.signInWithMicrosoft = signInWithMicrosoft

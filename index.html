@@ -64,15 +64,21 @@
             <label>Email</label>
             <input type="email" id="auth-email" placeholder="you@example.com" autocomplete="email">
           </div>
-          <div class="field">
+          <div class="field" id="pw-field">
             <label>Password</label>
             <input type="password" id="auth-password" placeholder="••••••••" autocomplete="current-password">
           </div>
+          <div class="field" id="code-field" style="display:none">
+            <label>Sign-in code</label>
+            <input type="text" id="auth-code" inputmode="numeric" autocomplete="one-time-code" placeholder="6-digit code">
+          </div>
           <div class="auth-err" id="auth-err"></div>
           <button class="btn btn-primary btn-full" id="auth-btn" onclick="handleAuth()">Sign in</button>
+          <button class="btn btn-primary btn-full" id="code-btn" style="display:none" onclick="verifyEmailCode()">Verify code &amp; sign in</button>
 
           <div class="auth-forgot">
             <a onclick="requestPasswordReset()">Forgot password?</a>
+            <a onclick="requestEmailCode()">Email me a code</a>
           </div>
           <div class="auth-toggle">
             <span id="auth-toggle-text">Don't have an account?</span>

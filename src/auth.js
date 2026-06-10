@@ -53,6 +53,37 @@ export async function requestPasswordReset() {
   showAuthErr('Password reset link sent — check your email.')
 }
 
+// Passwordless email OTP. Sends a 6-digit code instead of a magic link so
+// corporate scanners (Microsoft Safe Links / Defender for Cloud Apps) can't
+// consume a single-use link before the user clicks it. Requires the Supabase
+// "Magic Link" email template to use {{ .Token }} instead of {{ .ConfirmationURL }}.
+export async function requestEmailCode() {
+  const email = document.getElementById('auth-email').value.trim()
+  if (!email) { showAuthErr('Enter your email above first, then click “Email me a code”.'); return }
+  const { error } = await sb.auth.signInWithOtp({ email, options: { shouldCreateUser: false } })
+  if (error) { showAuthErr(error.message); return }
+  document.getElementById('pw-field').style.display = 'none'
+  document.getElementById('auth-btn').style.display = 'none'
+  document.getElementById('code-field').style.display = ''
+  document.getElementById('code-btn').style.display = ''
+  document.getElementById('auth-code').focus()
+  const e = document.getElementById('auth-err')
+  e.textContent = `Code sent to ${email}. Enter it above (check spam/quarantine).`
+  e.style.display = 'block'
+}
+
+export async function verifyEmailCode() {
+  const email = document.getElementById('auth-email').value.trim()
+  const token = document.getElementById('auth-code').value.trim()
+  if (!token) { showAuthErr('Enter the code from your email.'); return }
+  const btn = document.getElementById('code-btn')
+  btn.disabled = true; btn.textContent = 'Verifying…'
+  const { error } = await sb.auth.verifyOtp({ email, token, type: 'email' })
+  btn.disabled = false; btn.textContent = 'Verify code & sign in'
+  if (error) { showAuthErr(error.message); return }
+  // onAuthStateChange → SIGNED_IN drives the app load from here.
+}
+
 export async function updatePassword() {
   const pw = document.getElementById('recovery-password').value
   const btn = document.getElementById('recovery-btn')
