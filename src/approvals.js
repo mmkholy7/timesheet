@@ -1,4 +1,4 @@
-import { loadApprovals, loadApprovalEntries, decideApproval, profile } from './data.js'
+import { loadApprovals, loadApprovalEntries, decideApproval, profile, logAction } from './data.js'
 import { toast } from './ui.js'
 import { buildTimesheetPDF } from './pdf.js'
 import { sb } from './supabase.js'
@@ -118,6 +118,12 @@ async function decide(btn, approval, act) {
 
   const result = await decideApproval(approval.id, decision)
   if (!result) { btn.disabled = false; return }
+
+  logAction(`approval: ${decision.toLowerCase()}`, 'approval', approval.id, {
+    employee: approval.timesheets?.profiles?.email,
+    project: approval.projects?.code,
+    week: approval.timesheets?.week_start
+  })
 
   if (decision === 'Approved') {
     approval.status = 'Approved'

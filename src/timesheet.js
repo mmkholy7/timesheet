@@ -1,4 +1,4 @@
-import { allSheets, getLocalSheet, newRow, scheduleSave, saveSheet, projects, createApprovalsForSheet } from './data.js'
+import { allSheets, getLocalSheet, newRow, scheduleSave, saveSheet, projects, createApprovalsForSheet, logAction } from './data.js'
 import { toast } from './ui.js'
 import { sb } from './supabase.js'
 
@@ -205,6 +205,8 @@ async function markSubmitted(wk) {
   sheet.status = 'Submitted'
   await saveSheet(wk)
   await createApprovalsForSheet(wk)           // route to approver(s) per project
+  const hrs = sheet.rows.reduce((a, r) => a + r.hours.reduce((b, h) => b + (+h || 0), 0), 0)
+  logAction('timesheet: submitted', 'timesheet', wk, { hours: +hrs.toFixed(2) })
   render()
   return true
 }
@@ -228,6 +230,7 @@ export async function submitAndSend() {
   if (wasSubmitted) await createApprovalsForSheet(wk)   // ensure rows exist if it was already submitted
   try {
     await sb.functions.invoke('notify-submission', { body: { timesheet_id: sheet.id } })
+    logAction('timesheet: sent for approval', 'timesheet', wk)
     toast('Sent for approval — your approver has been notified ✓')
   } catch {
     toast('Submitted — but the email service is not connected yet.')

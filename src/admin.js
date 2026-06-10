@@ -1,6 +1,7 @@
 import {
   loadProfiles, loadCustomers, loadAllProjects, addProject, addCustomer, setProjectActive,
-  loadApproverLinks, assignApprover, removeApproverLink, createUserAccount, updateProfileRole
+  loadApproverLinks, assignApprover, removeApproverLink, createUserAccount, updateProfileRole,
+  loadAuditLog
 } from './data.js'
 import { toast } from './ui.js'
 
@@ -11,7 +12,37 @@ let profiles = [], customers = [], allProjects = []
 
 export async function renderAdmin() {
   ;[profiles, customers, allProjects] = await Promise.all([loadProfiles(), loadCustomers(), loadAllProjects()])
-  await Promise.all([renderUsers(), renderApprovers(), renderProjects()])
+  await Promise.all([renderUsers(), renderApprovers(), renderProjects(), renderLogs()])
+}
+
+// ── Activity log ──
+async function renderLogs() {
+  const logs = await loadAuditLog()
+  const fmt = (iso) => new Date(iso).toLocaleString(undefined, {
+    month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit'
+  })
+  const details = (d) => {
+    if (!d) return '—'
+    const s = typeof d === 'string' ? d : JSON.stringify(d)
+    return esc(s.length > 80 ? s.slice(0, 80) + '…' : s)
+  }
+  const rows = logs.length ? logs.map(l => `
+    <tr>
+      <td class="lg-time">${esc(fmt(l.created_at))}</td>
+      <td>${esc(l.user_email || '—')}${l.user_role ? `<span class="lg-role">${esc(l.user_role)}</span>` : ''}</td>
+      <td>${esc(l.action)}</td>
+      <td>${esc(l.entity_type || '')}${l.entity_id ? ` <span class="lg-ent">${esc(l.entity_id)}</span>` : ''}</td>
+      <td class="lg-details">${details(l.details)}</td>
+      <td class="lg-ip">${esc(l.ip || '—')}</td>
+    </tr>`).join('') : '<tr><td colspan="6" class="ad-empty">No activity yet.</td></tr>'
+
+  document.getElementById('admin-logs').innerHTML = `
+    <div class="grid-wrap">
+      <table class="admin-table">
+        <thead><tr><th>Time</th><th>User</th><th>Action</th><th>Entity</th><th>Details</th><th>IP</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`
 }
 
 // Reload profiles and re-render the views that depend on them.

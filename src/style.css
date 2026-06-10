@@ -173,6 +173,11 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .admin-table .ad-right { text-align: right; }
 .admin-table .ad-empty { color: var(--muted); text-align: center; padding: 18px; }
 .admin-table tr.ad-inactive { opacity: .5; }
+.lg-time { white-space: nowrap; color: var(--muted); font-variant-numeric: tabular-nums; }
+.lg-role { margin-left: 6px; font-size: 9px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; }
+.lg-ent { color: var(--muted); }
+.lg-details { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; color: var(--text-dim); }
+.lg-ip { white-space: nowrap; color: var(--muted); font-variant-numeric: tabular-nums; }
 
 @media (max-width: 1000px) {
   .app-shell { grid-template-columns: 1fr; }

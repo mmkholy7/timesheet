@@ -203,6 +203,30 @@ export async function loadApprovalEntries(timesheetId, projectId) {
 
 // ── Admin: profiles, customers, projects, approver links ──
 
+// ── Audit log ──
+
+// Append an audit entry. Identity + IP are stamped server-side by a trigger;
+// we only send what was done. Logging must never block the user's action.
+export async function logAction(action, entity_type = null, entity_id = null, details = null) {
+  try {
+    await sb.from('audit_log').insert({
+      action, entity_type,
+      entity_id: entity_id != null ? String(entity_id) : null,
+      details
+    })
+  } catch { /* swallow — auditing is best-effort */ }
+}
+
+export async function loadAuditLog(limit = 200) {
+  const { data, error } = await sb
+    .from('audit_log')
+    .select('id, created_at, user_email, user_role, action, entity_type, entity_id, details, ip')
+    .order('created_at', { ascending: false })
+    .limit(limit)
+  if (error) { toast('Error loading logs: ' + error.message); return [] }
+  return data || []
+}
+
 export async function loadProfiles() {
   const { data, error } = await sb.from('profiles').select('id, email, full_name, role').order('email')
   if (error) { toast('Error loading users: ' + error.message); return [] }
@@ -220,6 +244,7 @@ export async function createUserAccount(email, fullName, role) {
     })
     if (error || data?.error) { toast('Add user failed: ' + (data?.error || error.message)); return false }
     toast(data.created ? `User ${e} created ✓` : `User ${e} already existed — updated ✓`)
+    logAction(data.created ? 'user: created' : 'user: updated', 'user', e, { role: role || 'employee' })
     return true
   } catch {
     toast('This needs the admin-create-user function deployed.')
@@ -257,6 +282,7 @@ async function fnError(error, data) {
 export async function updateProfileRole(id, role) {
   const { error } = await sb.from('profiles').update({ role }).eq('id', id)
   if (error) { toast('Role update failed: ' + error.message); return false }
+  logAction('user: role changed', 'user', id, { to: role })
   return true
 }
 
@@ -269,6 +295,7 @@ export async function loadCustomers() {
 export async function addCustomer(name, code) {
   const { error } = await sb.from('customers').insert({ name, code: code || null })
   if (error) { toast('Add customer failed: ' + error.message); return false }
+  logAction('customer: created', 'customer', name)
   return true
 }
 
@@ -276,6 +303,7 @@ export async function addProject(customer_id, code, description) {
   const { error } = await sb.from('projects').insert({ customer_id, code, description: description || null, active: true })
   if (error) { toast('Add project failed: ' + error.message); return false }
   await loadProjects()
+  logAction('project: created', 'project', code, { description: description || null })
   return true
 }
 
@@ -283,6 +311,7 @@ export async function setProjectActive(id, active) {
   const { error } = await sb.from('projects').update({ active }).eq('id', id)
   if (error) { toast('Update failed: ' + error.message); return false }
   await loadProjects()
+  logAction(active ? 'project: activated' : 'project: deactivated', 'project', id)
   return true
 }
 
@@ -306,6 +335,7 @@ export async function loadApproverLinks() {
 export async function removeApproverLink(id) {
   const { error } = await sb.from('approver_links').delete().eq('id', id)
   if (error) { toast('Remove failed: ' + error.message); return false }
+  logAction('approver: removed', 'approver_link', id)
   return true
 }
 
@@ -333,6 +363,7 @@ export async function assignApprover(employeeId, projectId, approverEmail) {
         return false
       }
       toast(`Invited ${email} ✓`)
+      logAction('approver: invited & assigned', 'approver_link', projectId, { approver: email })
       return true
     } catch {
       toast('No user with that email yet, and the invite service is not deployed. ' +
@@ -351,6 +382,7 @@ export async function assignApprover(employeeId, projectId, approverEmail) {
     { onConflict: 'manager_id,employee_id,project_id', ignoreDuplicates: true }
   )
   if (lErr) { toast('Link failed: ' + lErr.message); return false }
+  logAction('approver: assigned', 'approver_link', projectId, { approver: email })
   return true
 }
 
