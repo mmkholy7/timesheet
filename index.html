@@ -142,7 +142,8 @@
           <div class="header-actions">
             <span class="sync-indicator" id="sync-status"></span>
             <button class="btn btn-sm btn-ghost" onclick="exportExcel()">⬇ Export Excel</button>
-            <button class="btn btn-primary btn-sm" onclick="submitSheet()">✓ Submit Week</button>
+            <button class="btn btn-sm" onclick="submitSheet()">✓ Submit</button>
+            <button class="btn btn-primary btn-sm" onclick="submitAndSend()">✉ Submit &amp; Send for Approval</button>
           </div>
         </header>
 
@@ -186,8 +187,13 @@
       <!-- ADMIN -->
       <div id="admin-view">
         <div class="admin-section">
+          <h3 class="admin-h">Users</h3>
+          <p class="admin-desc">Add a user straight to the database — no invite email needed. They can then sign in with Google/Microsoft using that email (or use "Forgot password" to set one). Change anyone's role inline.</p>
+          <div id="admin-users"></div>
+        </div>
+        <div class="admin-section">
           <h3 class="admin-h">Approvers</h3>
-          <p class="admin-desc">Assign who approves an employee's timesheets for a customer. The approver must already exist as a user (invite them in Supabase Auth first). On submit, that approver is emailed.</p>
+          <p class="admin-desc">Assign who approves an employee's timesheets for a specific project. If the approver isn't a user yet, they're invited by email automatically. On "Submit &amp; send", that approver is emailed.</p>
           <div id="admin-approvers"></div>
         </div>
         <div class="admin-section">

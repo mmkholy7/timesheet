@@ -27,9 +27,10 @@ export async function renderApprovals() {
   for (const a of cache) {
     const ts = a.timesheets
     const emp = ts?.profiles?.full_name || ts?.profiles?.email || 'Employee'
-    const entries = await loadApprovalEntries(ts.id, a.customer_id)
+    const entries = await loadApprovalEntries(ts.id, a.project_id)
     a._entries = entries
     const total = entries.reduce((s, e) => s + rowHours(e.hours), 0)
+    const projLabel = a.projects?.code || a.projects?.customers?.name || 'Project'
 
     const card = document.createElement('div')
     card.className = 'approval-card'
@@ -37,7 +38,7 @@ export async function renderApprovals() {
       <div class="approval-head">
         <div>
           <div class="approval-emp">${esc(emp)}</div>
-          <div class="approval-sub">${esc(a.customers?.name || '')} · Week of ${ts.week_start} · <strong>${total.toFixed(1)} h</strong></div>
+          <div class="approval-sub">${esc(projLabel)} · Week of ${ts.week_start} · <strong>${total.toFixed(1)} h</strong></div>
         </div>
         <div class="approval-actions">
           <button class="btn btn-sm" data-act="reject" data-id="${a.id}">Reject</button>
@@ -82,7 +83,8 @@ async function emailApproval(approval, result) {
     weekStart: ts.week_start,
     weekEnd: addDays(ts.week_start, 6),
     status: 'Approved',
-    customer: approval.customers?.name,
+    customer: approval.projects?.customers?.name,
+    project: approval.projects?.code,
     approvedBy: profile?.email,
     decidedAt: result.decided_at
   }, rows)

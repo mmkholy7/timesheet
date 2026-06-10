@@ -1,7 +1,7 @@
 import './style.css'
 import { initAuth, handleAuth, signOut, toggleAuthMode, requestPasswordReset, updatePassword, signInWithGoogle, signInWithMicrosoft } from './auth.js'
 import { loadAllSheets, loadProfile, loadProjects, setUser, clearSheets } from './data.js'
-import { render, addRow, submitSheet, prevWeek, nextWeek, goToday, toggleWeekend } from './timesheet.js'
+import { render, addRow, submitSheet, submitAndSend, prevWeek, nextWeek, goToday, toggleWeekend } from './timesheet.js'
 import { exportExcel } from './export.js'
 import { renderDashboard } from './dashboard.js'
 import { renderApprovals } from './approvals.js'
@@ -47,6 +47,7 @@ window.signInWithMicrosoft = signInWithMicrosoft
 window.signOut = async () => { await signOut(); }
 window.addRow = addRow
 window.submitSheet = submitSheet
+window.submitAndSend = submitAndSend
 window.prevWeek = prevWeek
 window.nextWeek = nextWeek
 window.goToday = goToday

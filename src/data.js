@@ -155,23 +155,20 @@ export function clearSheets() {
 
 // ── Approvals ──
 
-// Distinct customers present in a sheet's entries (each needs its own approval)
-function customersInSheet(sheet) {
+// Distinct projects present in a sheet's entries (each needs its own approval)
+function projectsInSheet(sheet) {
   const ids = new Set()
-  sheet.rows.forEach(r => {
-    const p = projects.find(x => x.id === r.project_id)
-    if (p) ids.add(p.customer_id)
-  })
+  sheet.rows.forEach(r => { if (r.project_id) ids.add(r.project_id) })
   return [...ids]
 }
 
-// On submit, ensure a Pending approval row exists per customer in the sheet
+// On submit, ensure a Pending approval row exists per project in the sheet
 export async function createApprovalsForSheet(wk) {
   const sheet = allSheets[wk]
   if (!sheet || !sheet.id) return
-  const rows = customersInSheet(sheet).map(customer_id => ({
+  const rows = projectsInSheet(sheet).map(project_id => ({
     timesheet_id: sheet.id,
-    customer_id,
+    project_id,
     status: 'Pending'
   }))
   if (!rows.length) return
@@ -179,7 +176,7 @@ export async function createApprovalsForSheet(wk) {
   // existing ones here because employees can't write approval status (RLS).
   const { error } = await sb
     .from('approvals')
-    .upsert(rows, { onConflict: 'timesheet_id,customer_id', ignoreDuplicates: true })
+    .upsert(rows, { onConflict: 'timesheet_id,project_id', ignoreDuplicates: true })
   if (error) toast('Approval routing error: ' + error.message)
 }
 
@@ -187,21 +184,21 @@ export async function createApprovalsForSheet(wk) {
 export async function loadApprovals() {
   const { data, error } = await sb
     .from('approvals')
-    .select('id, status, customer_id, decided_at, customers(name), timesheets(id, week_start, user_id, profiles(email, full_name))')
+    .select('id, status, project_id, decided_at, projects(code, customers(name)), timesheets(id, week_start, user_id, profiles(email, full_name))')
     .order('status', { ascending: true })
   if (error) { toast('Error loading approvals: ' + error.message); return [] }
   return data || []
 }
 
-// Load the entries the manager is allowed to see for one approval (their customer only)
-export async function loadApprovalEntries(timesheetId, customerId) {
+// Load the entries the manager is allowed to see for one approval (their project only)
+export async function loadApprovalEntries(timesheetId, projectId) {
   const { data, error } = await sb
     .from('timesheet_entries')
-    .select('rate, hours, projects(code, customer_id)')
+    .select('rate, hours, project_id, projects(code)')
     .eq('timesheet_id', timesheetId)
+    .eq('project_id', projectId)
   if (error) { toast('Error loading entries: ' + error.message); return [] }
-  // RLS already restricts to this manager's customers; filter to this approval's customer
-  return (data || []).filter(e => e.projects?.customer_id === customerId)
+  return data || []
 }
 
 // ── Admin: profiles, customers, projects, approver links ──
@@ -210,6 +207,31 @@ export async function loadProfiles() {
   const { data, error } = await sb.from('profiles').select('id, email, full_name, role').order('email')
   if (error) { toast('Error loading users: ' + error.message); return [] }
   return data || []
+}
+
+// Admin: create a user directly in the DB (via the admin-create-user function)
+// and set their role. Idempotent — re-adding an existing email just updates it.
+export async function createUserAccount(email, fullName, role) {
+  const e = (email || '').trim().toLowerCase()
+  if (!e) { toast('Enter an email.'); return false }
+  try {
+    const { data, error } = await sb.functions.invoke('admin-create-user', {
+      body: { email: e, full_name: fullName || '', role: role || 'employee' }
+    })
+    if (error || data?.error) { toast('Add user failed: ' + (data?.error || error.message)); return false }
+    toast(data.created ? `User ${e} created ✓` : `User ${e} already existed — updated ✓`)
+    return true
+  } catch {
+    toast('This needs the admin-create-user function deployed.')
+    return false
+  }
+}
+
+// Admin: change a user's role (RLS lets admins update any profile).
+export async function updateProfileRole(id, role) {
+  const { error } = await sb.from('profiles').update({ role }).eq('id', id)
+  if (error) { toast('Role update failed: ' + error.message); return false }
+  return true
 }
 
 export async function loadCustomers() {
@@ -250,7 +272,7 @@ export async function loadAllProjects() {
 export async function loadApproverLinks() {
   const { data, error } = await sb
     .from('approver_links')
-    .select('id, customers(name), manager:profiles!approver_links_manager_id_fkey(email), employee:profiles!approver_links_employee_id_fkey(email)')
+    .select('id, projects(code, customers(name)), manager:profiles!approver_links_manager_id_fkey(email), employee:profiles!approver_links_employee_id_fkey(email)')
   if (error) { toast('Error loading approvers: ' + error.message); return [] }
   return data || []
 }
@@ -261,18 +283,36 @@ export async function removeApproverLink(id) {
   return true
 }
 
-// Assign an approver (by email) to an employee for a customer.
-// The approver must already exist as a user (invite them in Supabase Auth first).
-export async function assignApprover(employeeId, customerId, approverEmail) {
+// Assign an approver (by email) to an employee for a project.
+// If the approver isn't a user yet, the `invite-approver` edge function invites
+// them and creates the link server-side (service role). Existing users are
+// linked directly here without needing the function deployed.
+export async function assignApprover(employeeId, projectId, approverEmail) {
   const email = (approverEmail || '').trim().toLowerCase()
   if (!email) { toast('Enter the approver email.'); return false }
 
   const { data: prof, error } = await sb
     .from('profiles').select('id, role').ilike('email', email).maybeSingle()
   if (error) { toast('Lookup failed: ' + error.message); return false }
+
+  // Not a user yet → ask the edge function to invite them and create the link.
   if (!prof) {
-    toast('No user with that email yet — invite them in Supabase → Authentication → Users, then assign.')
-    return false
+    try {
+      const { data, error: fErr } = await sb.functions.invoke('invite-approver', {
+        body: { employee_id: employeeId, project_id: projectId, approver_email: email }
+      })
+      if (fErr || data?.error) {
+        toast('Invite failed: ' + (data?.error || fErr.message) +
+          ' — or add them in Supabase → Authentication → Users, then assign.')
+        return false
+      }
+      toast(`Invited ${email} ✓`)
+      return true
+    } catch {
+      toast('No user with that email yet, and the invite service is not deployed. ' +
+        'Invite them in Supabase → Authentication → Users, then assign.')
+      return false
+    }
   }
 
   if (prof.role !== 'manager' && prof.role !== 'admin') {
@@ -281,8 +321,8 @@ export async function assignApprover(employeeId, customerId, approverEmail) {
   }
 
   const { error: lErr } = await sb.from('approver_links').upsert(
-    { manager_id: prof.id, employee_id: employeeId, customer_id: customerId },
-    { onConflict: 'manager_id,employee_id,customer_id', ignoreDuplicates: true }
+    { manager_id: prof.id, employee_id: employeeId, project_id: projectId },
+    { onConflict: 'manager_id,employee_id,project_id', ignoreDuplicates: true }
   )
   if (lErr) { toast('Link failed: ' + lErr.message); return false }
   return true
@@ -298,7 +338,7 @@ export async function decideApproval(approvalId, decision, comment = null) {
       comment
     })
     .eq('id', approvalId)
-    .select('id, decided_at, customer_id, timesheets(id, week_start, user_id)')
+    .select('id, decided_at, project_id, timesheets(id, week_start, user_id)')
     .single()
   if (error) { toast('Decision failed: ' + error.message); return null }
   return data

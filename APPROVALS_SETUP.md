@@ -1,15 +1,28 @@
 # Approval workflow — setup
 
-The in-app workflow (submit → manager Approvals screen → approve, with timestamp +
-PDF) works as soon as a manager is linked. **Emails** require Resend + deploying the
-two edge functions.
+Approvers are assigned **per project**. The in-app workflow (submit → manager
+Approvals screen → approve, with timestamp + PDF) works as soon as an approver is
+linked. **Emails** require Resend + deploying the edge functions.
 
-## 1. Link your WSP manager (required for the workflow)
-1. Add/invite the boss: Supabase → **Authentication → Users → Add user / Invite**
-   (use their real Google/Microsoft email). Or have them sign in once.
-2. Edit and run [`supabase/link_approver.sql`](supabase/link_approver.sql) in the SQL Editor
-   (set the boss's email). This makes them a `manager` and links them to your WSP time.
-3. They sign in → they’ll see the **Approvals** tab (employees don’t).
+Two submit actions on the Timesheet header:
+
+- **Submit** — marks the week Submitted and creates the pending approval(s); no email.
+- **Submit & Send for Approval** — same, and emails the project's approver(s).
+
+## 0. Apply the schema migration (one-time)
+Run [`supabase/migrations/0002_per_project_approvers.sql`](supabase/migrations/0002_per_project_approvers.sql)
+in the SQL Editor. It moves approver links + approvals from per-customer to
+per-project and lets the invite function set roles.
+
+## 1. Link the project approver (required for the workflow)
+**Easiest:** sign in as an admin → **Admin → Approvers** → pick the employee +
+project, type the approver's email, **Assign**. If that email isn't a user yet it's
+**invited by email automatically** (needs the `invite-approver` function deployed).
+
+Manual alternative: invite them via Supabase → **Authentication → Users**, then edit
+and run [`supabase/link_approver.sql`](supabase/link_approver.sql) in the SQL Editor.
+
+The approver signs in → they see the **Approvals** tab (employees don't).
 
 ## 2. Resend (for emails)
 1. Create an account at https://resend.com.
@@ -53,14 +66,29 @@ supabase secrets set APP_URL="https://ts.uably.com"
 supabase link --project-ref fbhjzxficuevqevtuluh   # once
 supabase functions deploy notify-submission
 supabase functions deploy confirm-approval
+supabase functions deploy invite-approver
+supabase functions deploy admin-create-user
 ```
 
-## 5. Test end to end
-1. As **you** (employee): Timesheet → enter hours on a WSP project → **Submit Week**.
-   → status `Submitted`, an approval row is created, the boss gets an email.
-2. As the **boss**: open the app → **Approvals** → review your WSP entries → **Approve**.
-   → approval is timestamped; you + the boss get a confirmation email with the
-   timestamped **PDF** attached.
+(Or deploy any of these from the Dashboard → **Edge Functions → Via Editor**: name it
+exactly as above and paste the matching `supabase/functions/<name>/index.ts`. Each file
+is self-contained.)
+
+The **Admin → Users** section uses `admin-create-user` to add people straight to the
+database (no invite email). **Admin → Approvers** uses `invite-approver` to assign a
+project approver, inviting them by email if they aren't a user yet.
+
+## 5. Test end to end (mmkholy@gmail.com approves melkhouly@uably.com)
+1. As **admin** (melkhouly@uably.com): **Admin → Approvers** → Employee
+   `melkhouly@uably.com`, Project = a WSP project, Approver `mmkholy@gmail.com` →
+   **Assign**. Not a user yet → they're invited by email automatically.
+2. As **melkhouly** (employee): Timesheet → enter hours on that WSP project →
+   **Submit & Send for Approval**. → status `Submitted`, a per-project approval row
+   is created, mmkholy gets an email. (Plain **Submit** does the same without email.)
+3. As **mmkholy** (accept the invite, sign in): **Approvals** → review the WSP entries
+   for that project → **Approve**. → timestamped; both parties get a confirmation
+   email with the timestamped **PDF** attached.
 
 > Until the functions are deployed, the in-app flow still works — emails simply no-op
-> (the app shows "Email service not connected yet").
+> (the app shows "Email service not connected yet"), and unknown approvers must be
+> invited manually in Supabase before assigning.

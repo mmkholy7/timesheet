@@ -15,7 +15,9 @@ export function buildTimesheetPDF(meta, rows) {
   doc.setFont('helvetica', 'bold'); doc.setFontSize(18)
   doc.text('Timesheet', 40, 44)
   doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(110)
-  doc.text(meta.customer ? `Customer: ${meta.customer}` : '', 40, 62)
+  const subtitle = [meta.customer && `Customer: ${meta.customer}`, meta.project && `Project: ${meta.project}`]
+    .filter(Boolean).join('   ·   ')
+  doc.text(subtitle, 40, 62)
 
   doc.setTextColor(30); doc.setFontSize(10)
   const infoX = 40, infoY = 88, gap = 200

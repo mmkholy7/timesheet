@@ -1,28 +1,78 @@
 import {
   loadProfiles, loadCustomers, loadAllProjects, addProject, addCustomer, setProjectActive,
-  loadApproverLinks, assignApprover, removeApproverLink
+  loadApproverLinks, assignApprover, removeApproverLink, createUserAccount, updateProfileRole
 } from './data.js'
 import { toast } from './ui.js'
 
 function esc(s) { return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;') }
 
-let profiles = [], customers = []
+const ROLES = ['employee', 'manager', 'admin']
+let profiles = [], customers = [], allProjects = []
 
 export async function renderAdmin() {
-  ;[profiles, customers] = await Promise.all([loadProfiles(), loadCustomers()])
-  await Promise.all([renderApprovers(), renderProjects()])
+  ;[profiles, customers, allProjects] = await Promise.all([loadProfiles(), loadCustomers(), loadAllProjects()])
+  await Promise.all([renderUsers(), renderApprovers(), renderProjects()])
+}
+
+// Reload profiles and re-render the views that depend on them.
+async function refreshProfiles() {
+  profiles = await loadProfiles()
+  renderUsers(); renderApprovers()
+}
+
+// ── Users ──
+function renderUsers() {
+  const roleOpts = (sel) => ROLES.map(r => `<option${r === sel ? ' selected' : ''}>${r}</option>`).join('')
+
+  const rows = profiles.length ? profiles.map(p => `
+    <tr>
+      <td>${esc(p.email)}</td>
+      <td>${esc(p.full_name || '')}</td>
+      <td><select class="role-select" data-id="${p.id}">${roleOpts(p.role)}</select></td>
+    </tr>`).join('') : '<tr><td colspan="3" class="ad-empty">No users yet.</td></tr>'
+
+  document.getElementById('admin-users').innerHTML = `
+    <div class="admin-form">
+      <div class="af-field af-grow"><label>Email</label><input id="us-email" type="email" placeholder="person@uably.com"></div>
+      <div class="af-field af-grow"><label>Full name</label><input id="us-name" placeholder="optional"></div>
+      <div class="af-field"><label>Role</label><select id="us-role">${roleOpts('employee')}</select></div>
+      <button class="btn btn-primary btn-sm" id="us-add">Add user</button>
+    </div>
+    <table class="admin-table">
+      <thead><tr><th>Email</th><th>Name</th><th>Role</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`
+
+  document.getElementById('us-add').addEventListener('click', async () => {
+    const email = document.getElementById('us-email').value
+    const name = document.getElementById('us-name').value.trim()
+    const role = document.getElementById('us-role').value
+    if (!email) { toast('Enter an email.'); return }
+    const btn = document.getElementById('us-add')
+    btn.disabled = true; btn.textContent = 'Adding…'
+    const ok = await createUserAccount(email, name, role)
+    btn.disabled = false; btn.textContent = 'Add user'
+    if (ok) refreshProfiles()
+  })
+
+  document.querySelectorAll('#admin-users .role-select').forEach(sel => {
+    sel.addEventListener('change', async () => {
+      if (await updateProfileRole(sel.dataset.id, sel.value)) { toast('Role updated ✓'); refreshProfiles() }
+    })
+  })
 }
 
 // ── Approvers ──
 async function renderApprovers() {
   const links = await loadApproverLinks()
   const empOpts = profiles.map(p => `<option value="${p.id}">${esc(p.email)}</option>`).join('')
-  const custOpts = customers.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join('')
+  const projOpts = allProjects.filter(p => p.active).map(p =>
+    `<option value="${p.id}">${esc(p.customers?.name ? p.customers.name + ' · ' : '')}${esc(p.code)}</option>`).join('')
 
   const rows = links.length ? links.map(l => `
     <tr>
       <td>${esc(l.employee?.email || '')}</td>
-      <td>${esc(l.customers?.name || '')}</td>
+      <td>${esc(l.projects?.customers?.name ? l.projects.customers.name + ' · ' : '')}${esc(l.projects?.code || '')}</td>
       <td>${esc(l.manager?.email || '')}</td>
       <td class="ad-right"><button class="btn btn-sm btn-danger" data-rm="${l.id}">Remove</button></td>
     </tr>`).join('') : '<tr><td colspan="4" class="ad-empty">No approvers assigned yet.</td></tr>'
@@ -30,25 +80,25 @@ async function renderApprovers() {
   document.getElementById('admin-approvers').innerHTML = `
     <div class="admin-form">
       <div class="af-field"><label>Employee</label><select id="ap-emp">${empOpts}</select></div>
-      <div class="af-field"><label>Customer</label><select id="ap-cust">${custOpts}</select></div>
+      <div class="af-field af-grow"><label>Project</label><select id="ap-proj">${projOpts}</select></div>
       <div class="af-field af-grow"><label>Approver email</label><input id="ap-email" type="email" placeholder="boss@wsp.com"></div>
       <button class="btn btn-primary btn-sm" id="ap-assign">Assign approver</button>
     </div>
     <table class="admin-table">
-      <thead><tr><th>Employee</th><th>Customer</th><th>Approver</th><th></th></tr></thead>
+      <thead><tr><th>Employee</th><th>Project</th><th>Approver</th><th></th></tr></thead>
       <tbody>${rows}</tbody>
     </table>`
 
-  // default the employee select to the current admin (first match is fine)
   document.getElementById('ap-assign').addEventListener('click', async () => {
     const emp = document.getElementById('ap-emp').value
-    const cust = document.getElementById('ap-cust').value
+    const proj = document.getElementById('ap-proj').value
     const email = document.getElementById('ap-email').value
+    if (!emp || !proj) { toast('Pick an employee and a project.'); return }
     const btn = document.getElementById('ap-assign')
     btn.disabled = true; btn.textContent = 'Assigning…'
-    const ok = await assignApprover(emp, cust, email)
+    const ok = await assignApprover(emp, proj, email)
     btn.disabled = false; btn.textContent = 'Assign approver'
-    if (ok) { toast('Approver assigned ✓'); renderApprovers() }
+    if (ok) refreshProfiles()   // also surfaces a newly invited approver in Users
   })
   document.querySelectorAll('#admin-approvers button[data-rm]').forEach(b => {
     b.addEventListener('click', async () => {
@@ -92,7 +142,11 @@ async function renderProjects() {
     const code = document.getElementById('pr-code').value.trim()
     const desc = document.getElementById('pr-desc').value.trim()
     if (!cust || !code) { toast('Pick a customer and enter a code.'); return }
-    if (await addProject(cust, code, desc)) { toast('Project added ✓'); renderProjects() }
+    if (await addProject(cust, code, desc)) {
+      toast('Project added ✓')
+      allProjects = await loadAllProjects()
+      renderProjects(); renderApprovers()
+    }
   })
   document.getElementById('cu-add').addEventListener('click', async () => {
     const name = document.getElementById('cu-name').value.trim()

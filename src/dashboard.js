@@ -1,6 +1,6 @@
 import Chart from 'chart.js/auto'
 import { allSheets } from './data.js'
-import { weekKey, fmtShort } from './timesheet.js'
+import { weekKey, fmtShort, goToWeek } from './timesheet.js'
 
 // B&W + indigo accent: an indigo ramp followed by a neutral grey ramp
 const PALETTE = ['#4f46e5', '#6366f1', '#818cf8', '#a5b4fc', '#c7d2fe', '#3f3f46', '#71717a', '#a1a1aa', '#d4d4d8', '#e4e4e7']
@@ -75,7 +75,18 @@ export function renderDashboard() {
     },
     options: {
       ...baseOpts,
-      plugins: { legend: { display: false } },
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { footer: () => 'Click to open this week' } }
+      },
+      // Click a bar → jump to that week's timesheet
+      onClick: (_evt, elements) => {
+        const wk = recent[elements[0]?.index]?.wk
+        if (wk) { goToWeek(wk); window.setView('timesheet') }
+      },
+      onHover: (evt, elements) => {
+        evt.native.target.style.cursor = elements.length ? 'pointer' : 'default'
+      },
       scales: {
         y: { beginAtZero: true, grid: { color: '#f1f1f0' }, ticks: { color: '#9ca3af' } },
         x: { grid: { display: false }, ticks: { color: '#9ca3af' } }

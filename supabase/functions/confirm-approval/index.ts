@@ -2,7 +2,29 @@
 // Invoked from the app after the manager approves:
 //   sb.functions.invoke('confirm-approval', { body: { approval_id, pdf_base64, filename } })
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { cors, json, sendEmail } from '../_shared/util.ts'
+
+// ── inlined helpers (self-contained so it can be pasted into the dashboard editor) ──
+const cors = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS'
+}
+function json(body: unknown, status = 200): Response {
+  return new Response(JSON.stringify(body), { status, headers: { ...cors, 'Content-Type': 'application/json' } })
+}
+type Attachment = { filename: string; content: string }
+async function sendEmail(to: string[], subject: string, html: string, attachments?: Attachment[]) {
+  const key = Deno.env.get('RESEND_API_KEY')
+  if (!key) throw new Error('RESEND_API_KEY not set')
+  const from = Deno.env.get('MAIL_FROM') ?? 'Timesheet <no-reply@uably.com>'
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ from, to, subject, html, attachments })
+  })
+  if (!res.ok) throw new Error(`Resend ${res.status}: ${await res.text()}`)
+  return res.json()
+}
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
@@ -27,7 +49,7 @@ Deno.serve(async (req) => {
 
     const { data: ap } = await admin
       .from('approvals')
-      .select('id, status, decided_at, customers(name), timesheets(week_start, profiles(email, full_name))')
+      .select('id, status, decided_at, projects(code, customers(name)), timesheets(week_start, profiles(email, full_name))')
       .eq('id', approval_id)
       .single()
     if (!ap) return json({ error: 'approval not found' }, 404)
@@ -35,7 +57,8 @@ Deno.serve(async (req) => {
     const t: any = (ap as any).timesheets
     const employeeEmail = t?.profiles?.email ?? null
     const employeeName = t?.profiles?.full_name || employeeEmail || 'Employee'
-    const customerName = (ap as any).customers?.name ?? ''
+    const projectCode = (ap as any).projects?.code ?? ''
+    const customerName = (ap as any).projects?.customers?.name ?? projectCode
     const recipients = [employeeEmail, managerEmail].filter(Boolean) as string[]
     if (!recipients.length) return json({ error: 'no recipients' }, 400)
 

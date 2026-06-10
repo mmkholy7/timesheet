@@ -195,21 +195,43 @@ export function addRow() {
   render()
 }
 
-export async function submitSheet() {
-  const wk = weekKey(currentWeekStart)
+// Mark the week Submitted and create Pending approval rows (per project), but
+// do NOT email anyone. Shared by both submit actions.
+async function markSubmitted(wk) {
   const sheet = getLocalSheet(wk)
-  if (sheet.status === 'Submitted') { toast('Already submitted.'); return }
   if (!sheet.rows.some(r => r.project_id && r.hours.some(h => +h > 0))) {
-    toast('Add hours to a project before submitting.'); return
+    toast('Add hours to a project before submitting.'); return false
   }
   sheet.status = 'Submitted'
   await saveSheet(wk)
-  await createApprovalsForSheet(wk)           // route to approver(s) per customer
+  await createApprovalsForSheet(wk)           // route to approver(s) per project
+  render()
+  return true
+}
+
+// "Submit" — record the week as submitted without notifying the approver.
+export async function submitSheet() {
+  const wk = weekKey(currentWeekStart)
+  if (getLocalSheet(wk).status === 'Submitted') { toast('Already submitted.'); return }
+  if (await markSubmitted(wk)) toast('Submitted ✓ (approver not notified)')
+}
+
+// "Submit & send for approval" — submit and email the project's approver(s).
+export async function submitAndSend() {
+  const wk = weekKey(currentWeekStart)
+  const sheet = getLocalSheet(wk)
+  const wasSubmitted = sheet.status === 'Submitted'
+  if (!wasSubmitted && !(await markSubmitted(wk))) return
+  if (wasSubmitted && !sheet.rows.some(r => r.project_id && r.hours.some(h => +h > 0))) {
+    toast('Add hours to a project before submitting.'); return
+  }
+  if (wasSubmitted) await createApprovalsForSheet(wk)   // ensure rows exist if it was already submitted
   try {
     await sb.functions.invoke('notify-submission', { body: { timesheet_id: sheet.id } })
-  } catch { /* email service optional until Resend is configured */ }
-  render()
-  toast('Submitted — your approver has been notified ✓')
+    toast('Sent for approval — your approver has been notified ✓')
+  } catch {
+    toast('Submitted — but the email service is not connected yet.')
+  }
 }
 
 export function prevWeek() {
@@ -226,5 +248,13 @@ export function nextWeek() {
 
 export function goToday() {
   currentWeekStart = getWeekStart(new Date())
+  render()
+}
+
+// Jump to a specific week by its 'YYYY-MM-DD' start key (parsed in local time
+// so the date doesn't shift across timezones). Used by the dashboard drill-down.
+export function goToWeek(wk) {
+  const [y, m, d] = wk.split('-').map(Number)
+  currentWeekStart = getWeekStart(new Date(y, m - 1, d))
   render()
 }
