@@ -121,9 +121,9 @@
             <svg viewBox="0 0 20 20"><path d="M10 1a9 9 0 100 18 9 9 0 000-18zm-1 12.5l-3.5-3.5L7 8.5l2 2 4.5-4.5L15 7.5z"/></svg>
             <span>Approvals</span>
           </a>
-          <a class="nav-item" onclick="comingSoon('Projects')">
+          <a class="nav-item" id="nav-admin" style="display:none" onclick="setView('admin')">
             <svg viewBox="0 0 20 20"><path d="M2 5a1 1 0 011-1h4l2 2h6a1 1 0 011 1v7a1 1 0 01-1 1H3a1 1 0 01-1-1z"/></svg>
-            <span>Projects</span><span class="nav-soon">Soon</span>
+            <span>Admin</span>
           </a>
         </nav>
         <div class="sidebar-foot">
@@ -181,6 +181,20 @@
       <!-- APPROVALS -->
       <div id="approvals-view">
         <div id="approvals-list"></div>
+      </div>
+
+      <!-- ADMIN -->
+      <div id="admin-view">
+        <div class="admin-section">
+          <h3 class="admin-h">Approvers</h3>
+          <p class="admin-desc">Assign who approves an employee's timesheets for a customer. The approver must already exist as a user (invite them in Supabase Auth first). On submit, that approver is emailed.</p>
+          <div id="admin-approvers"></div>
+        </div>
+        <div class="admin-section">
+          <h3 class="admin-h">Projects &amp; Customers</h3>
+          <p class="admin-desc">Add or deactivate the project codes employees pick from.</p>
+          <div id="admin-projects"></div>
+        </div>
       </div>
 
       <!-- TIMESHEET -->

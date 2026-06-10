@@ -5,13 +5,15 @@ import { render, addRow, submitSheet, prevWeek, nextWeek, goToday, toggleWeekend
 import { exportExcel } from './export.js'
 import { renderDashboard } from './dashboard.js'
 import { renderApprovals } from './approvals.js'
+import { renderAdmin } from './admin.js'
 import { profile } from './data.js'
 import { showLoading, hideLoading, showAuth, showApp, showRecovery, toast } from './ui.js'
 
 const VIEWS = {
   dashboard: { el: 'dashboard-view', nav: 'nav-dashboard', title: 'Dashboard' },
   timesheet: { el: 'timesheet-view', nav: 'nav-timesheet', title: 'Timesheet' },
-  approvals: { el: 'approvals-view', nav: 'nav-approvals', title: 'Approvals' }
+  approvals: { el: 'approvals-view', nav: 'nav-approvals', title: 'Approvals' },
+  admin: { el: 'admin-view', nav: 'nav-admin', title: 'Admin' }
 }
 
 // ── Sidebar view switching ──
@@ -24,15 +26,17 @@ function setView(view) {
   document.getElementById('header-title').textContent = VIEWS[view].title
   if (view === 'dashboard') renderDashboard()
   if (view === 'approvals') renderApprovals()
+  if (view === 'admin') renderAdmin()
 }
 window.setView = setView
 window.comingSoon = (name) => toast(`${name} is coming in the next update.`)
 
-// Show the Approvals nav only for managers/admins
+// Role-gated nav: managers+admins see Approvals; admins also see Admin
 export function applyRoleNav() {
   const role = profile?.role
   document.getElementById('nav-approvals').style.display =
     (role === 'manager' || role === 'admin') ? '' : 'none'
+  document.getElementById('nav-admin').style.display = (role === 'admin') ? '' : 'none'
 }
 
 // ── Wire up global button handlers (called from HTML onclick) ──

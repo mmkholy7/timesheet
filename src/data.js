@@ -204,6 +204,90 @@ export async function loadApprovalEntries(timesheetId, customerId) {
   return (data || []).filter(e => e.projects?.customer_id === customerId)
 }
 
+// ── Admin: profiles, customers, projects, approver links ──
+
+export async function loadProfiles() {
+  const { data, error } = await sb.from('profiles').select('id, email, full_name, role').order('email')
+  if (error) { toast('Error loading users: ' + error.message); return [] }
+  return data || []
+}
+
+export async function loadCustomers() {
+  const { data, error } = await sb.from('customers').select('id, name, code').order('name')
+  if (error) { toast('Error loading customers: ' + error.message); return [] }
+  return data || []
+}
+
+export async function addCustomer(name, code) {
+  const { error } = await sb.from('customers').insert({ name, code: code || null })
+  if (error) { toast('Add customer failed: ' + error.message); return false }
+  return true
+}
+
+export async function addProject(customer_id, code, description) {
+  const { error } = await sb.from('projects').insert({ customer_id, code, description: description || null, active: true })
+  if (error) { toast('Add project failed: ' + error.message); return false }
+  await loadProjects()
+  return true
+}
+
+export async function setProjectActive(id, active) {
+  const { error } = await sb.from('projects').update({ active }).eq('id', id)
+  if (error) { toast('Update failed: ' + error.message); return false }
+  await loadProjects()
+  return true
+}
+
+export async function loadAllProjects() {
+  const { data, error } = await sb
+    .from('projects')
+    .select('id, code, description, active, customer_id, customers(name)')
+    .order('code')
+  if (error) { toast('Error loading projects: ' + error.message); return [] }
+  return data || []
+}
+
+export async function loadApproverLinks() {
+  const { data, error } = await sb
+    .from('approver_links')
+    .select('id, customers(name), manager:profiles!approver_links_manager_id_fkey(email), employee:profiles!approver_links_employee_id_fkey(email)')
+  if (error) { toast('Error loading approvers: ' + error.message); return [] }
+  return data || []
+}
+
+export async function removeApproverLink(id) {
+  const { error } = await sb.from('approver_links').delete().eq('id', id)
+  if (error) { toast('Remove failed: ' + error.message); return false }
+  return true
+}
+
+// Assign an approver (by email) to an employee for a customer.
+// The approver must already exist as a user (invite them in Supabase Auth first).
+export async function assignApprover(employeeId, customerId, approverEmail) {
+  const email = (approverEmail || '').trim().toLowerCase()
+  if (!email) { toast('Enter the approver email.'); return false }
+
+  const { data: prof, error } = await sb
+    .from('profiles').select('id, role').ilike('email', email).maybeSingle()
+  if (error) { toast('Lookup failed: ' + error.message); return false }
+  if (!prof) {
+    toast('No user with that email yet — invite them in Supabase → Authentication → Users, then assign.')
+    return false
+  }
+
+  if (prof.role !== 'manager' && prof.role !== 'admin') {
+    const { error: rErr } = await sb.from('profiles').update({ role: 'manager' }).eq('id', prof.id)
+    if (rErr) { toast('Could not set manager role: ' + rErr.message); return false }
+  }
+
+  const { error: lErr } = await sb.from('approver_links').upsert(
+    { manager_id: prof.id, employee_id: employeeId, customer_id: customerId },
+    { onConflict: 'manager_id,employee_id,customer_id', ignoreDuplicates: true }
+  )
+  if (lErr) { toast('Link failed: ' + lErr.message); return false }
+  return true
+}
+
 export async function decideApproval(approvalId, decision, comment = null) {
   const { data, error } = await sb
     .from('approvals')
