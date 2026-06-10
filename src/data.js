@@ -234,12 +234,23 @@ export async function emailTimesheetPDF({ to, periodLabel, base64, filename }) {
     const { data, error } = await sb.functions.invoke('email-timesheet', {
       body: { to, period: periodLabel, pdf_base64: base64, filename }
     })
-    if (error || data?.error) { toast('Send failed: ' + (data?.error || error.message)); return false }
+    if (error || data?.error) { toast('Send failed: ' + await fnError(error, data)); return false }
     return true
   } catch {
     toast('This needs the email-timesheet function deployed.')
     return false
   }
+}
+
+// Pull the real message out of a Supabase function error. On a non-2xx the
+// thrown error only says "non-2xx status code"; the useful detail is in the
+// Response body on error.context.
+async function fnError(error, data) {
+  if (data?.error) return data.error
+  if (error?.context && typeof error.context.json === 'function') {
+    try { const b = await error.context.json(); if (b?.error) return b.error } catch { /* not json */ }
+  }
+  return error?.message || 'unknown error'
 }
 
 // Admin: change a user's role (RLS lets admins update any profile).
