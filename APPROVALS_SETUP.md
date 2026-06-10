@@ -42,7 +42,7 @@ generic domain → they land in spam. Route them through your verified domain in
 | Port | `465` (SSL) or `587` (TLS) |
 | Username | `resend` |
 | Password | Resend API key (`re_…`) |
-| Sender email | `no-reply@uably.com` (verified domain) |
+| Sender email | `ts@ts.uably.com` (must be a **Resend-verified** domain) |
 | Sender name | `Timesheet` |
 
 Also add a **DMARC** record for deliverability:
@@ -93,7 +93,7 @@ new domain → reputation heuristics, not an auth failure. On the recipient tena
 Set these so the functions can send mail (Dashboard → Edge Functions → Secrets, or CLI):
 ```bash
 supabase secrets set RESEND_API_KEY=re_xxxxxxxx
-supabase secrets set MAIL_FROM="Timesheet <no-reply@uably.com>"
+supabase secrets set MAIL_FROM="Timesheet <ts@ts.uably.com>"
 supabase secrets set APP_URL="https://ts.uably.com"
 ```
 `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` are injected automatically.
