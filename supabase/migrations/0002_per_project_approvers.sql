@@ -95,6 +95,24 @@ create policy approvals_decide on approvals for update using (
 
 grant select, insert, update, delete on approver_links, approvals to authenticated;
 
+-- ---------- Restore policies that `drop table ... cascade` above removed ----------
+-- The two policies below have USING clauses that reference approver_links, so
+-- dropping/recreating that table drops them too. Recreate them here.
+drop policy if exists profiles_select on profiles;
+create policy profiles_select on profiles for select using (
+  id = auth.uid()
+  or is_admin()
+  or exists (select 1 from approver_links l
+             where (l.manager_id = auth.uid() and l.employee_id = profiles.id)
+                or (l.employee_id = auth.uid() and l.manager_id  = profiles.id))
+);
+drop policy if exists timesheets_read_mgr on timesheets;
+create policy timesheets_read_mgr on timesheets for select using (
+  is_admin()
+  or exists (select 1 from approver_links l
+             where l.manager_id = auth.uid() and l.employee_id = timesheets.user_id)
+);
+
 -- ---------- Allow the service role (edge functions) to set roles ----------
 -- The role guard from 0001 calls is_admin(), which is false in the service-role
 -- context the `invite-approver` function runs in. Allow service_role through so

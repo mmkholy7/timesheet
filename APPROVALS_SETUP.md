@@ -52,6 +52,43 @@ _dmarc.uably.com   TXT   "v=DMARC1; p=none; rua=mailto:dmarc@uably.com"
 Note: `uably.com` is on Microsoft 365, so it already has an SPF record — authenticate
 Resend via **DKIM** (and a `send.` subdomain return-path) so the two don't conflict.
 
+## 2c. DMARC for the sending subdomain (`ts.uably.com`) — stops phishing flags
+Auth/notification mail is sent **From** `ts@ts.uably.com`, so DMARC is checked on
+`ts.uably.com`. Without a record there, receivers (e.g. Microsoft Defender) only see
+`dmarc=bestguesspass` and may quarantine the mail as **High Confidence Phish** even
+though SPF + DKIM pass. Publish an explicit record for the subdomain:
+```
+_dmarc.ts.uably.com   TXT   "v=DMARC1; p=none; rua=mailto:dmarc@uably.com"
+```
+
+**Adding it in Cloudflare** (authoritative DNS for `uably.com`): Cloudflare auto-appends
+the zone name, so enter the **Name** without the zone:
+
+| Field | Value |
+|---|---|
+| Type | `TXT` |
+| Name | `_dmarc.ts`  (Cloudflare shows it as `_dmarc.ts.uably.com`) |
+| Content | `v=DMARC1; p=none; rua=mailto:dmarc@uably.com` |
+| TTL | Auto |
+
+(If the Cloudflare zone is `ts.uably.com` rather than `uably.com`, set Name = `_dmarc`.)
+After it propagates, the next message header should read `dmarc=pass`.
+
+### If mail still gets quarantined (recipient-side, Microsoft 365 / Defender)
+Auth emails are phishing-shaped ("You've been invited", "Reset your password") from a
+new domain → reputation heuristics, not an auth failure. On the recipient tenant:
+1. **Defender → Actions & submissions → Submissions** → submit the message as
+   *"Should not have been blocked"* and tick **Allow this message**.
+2. **Threat policies → Tenant Allow/Block Lists → Domains & addresses → Allow** →
+   add `ts.uably.com`.
+3. Durable bypass: an **Exchange mail-flow rule** → *Bypass spam filtering* when sender
+   domain is `ts.uably.com` **and** sender IP is in `54.240.14.0/24` (Amazon SES).
+
+> Since real users sign in with Google/Microsoft SSO, you can largely avoid the
+> invite/reset/magic-link emails: use **Admin → Users** (creates the account with no
+> email) and let people sign in via SSO. Only the app's approval notifications then
+> need to deliver.
+
 ## 3. Supabase secrets
 Set these so the functions can send mail (Dashboard → Edge Functions → Secrets, or CLI):
 ```bash
