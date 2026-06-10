@@ -33,6 +33,7 @@ export function showApp(userEmail) {
   document.getElementById('recovery-screen').classList.remove('visible')
   document.getElementById('app-screen').classList.add('visible')
   document.getElementById('topbar-user').textContent = userEmail
+  document.getElementById('user-avatar').textContent = (userEmail || '?').charAt(0)
 }
 
 export function showRecovery() {

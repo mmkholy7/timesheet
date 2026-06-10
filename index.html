@@ -90,25 +90,53 @@
 
   <!-- APP SCREEN -->
   <div id="app-screen">
-    <div class="topbar">
-      <div class="topbar-logo">
-        <svg viewBox="0 0 20 20"><path d="M3 3h6v6H3zM11 3h6v6h-6zM3 11h6v6H3zM11 11h6v6h-6z"/></svg>
-      </div>
-      <h1>Timesheet</h1>
-      <span class="sync-indicator" id="sync-status"></span>
-      <div class="topbar-actions">
-        <span class="topbar-user" id="topbar-user"></span>
-        <button class="btn btn-success btn-sm" onclick="exportExcel()">⬇ Export Excel</button>
-        <button class="btn btn-primary btn-sm" onclick="submitSheet()">✓ Submit</button>
-        <button class="btn btn-sm" onclick="signOut()">Sign out</button>
-      </div>
-    </div>
+    <div class="app-shell">
 
-    <div class="container">
-      <div class="view-tabs">
-        <button id="tab-dashboard" class="view-tab active" onclick="setView('dashboard')">Dashboard</button>
-        <button id="tab-timesheet" class="view-tab" onclick="setView('timesheet')">Timesheet</button>
-      </div>
+      <!-- SIDEBAR -->
+      <aside class="sidebar">
+        <div class="sidebar-brand">
+          <div class="sidebar-logo"><svg viewBox="0 0 20 20"><path d="M3 3h6v6H3zM11 3h6v6h-6zM3 11h6v6H3zM11 11h6v6h-6z"/></svg></div>
+          <span>Timesheet</span>
+        </div>
+        <nav class="sidebar-nav">
+          <a class="nav-item active" id="nav-dashboard" onclick="setView('dashboard')">
+            <svg viewBox="0 0 20 20"><path d="M3 3h6v6H3zM11 3h6v6h-6zM3 11h6v6H3zM11 11h6v6h-6z"/></svg>
+            <span>Dashboard</span>
+          </a>
+          <a class="nav-item" id="nav-timesheet" onclick="setView('timesheet')">
+            <svg viewBox="0 0 20 20"><path d="M2 4h16v3H2zM2 8.5h16v3H2zM2 13h16v3H2z"/></svg>
+            <span>Timesheet</span>
+          </a>
+          <a class="nav-item" onclick="comingSoon('Approvals')">
+            <svg viewBox="0 0 20 20"><path d="M10 1a9 9 0 100 18 9 9 0 000-18zm-1 12.5l-3.5-3.5L7 8.5l2 2 4.5-4.5L15 7.5z"/></svg>
+            <span>Approvals</span><span class="nav-soon">Soon</span>
+          </a>
+          <a class="nav-item" onclick="comingSoon('Projects')">
+            <svg viewBox="0 0 20 20"><path d="M2 5a1 1 0 011-1h4l2 2h6a1 1 0 011 1v7a1 1 0 01-1 1H3a1 1 0 01-1-1z"/></svg>
+            <span>Projects</span><span class="nav-soon">Soon</span>
+          </a>
+        </nav>
+        <div class="sidebar-foot">
+          <div class="user-chip">
+            <div class="user-avatar" id="user-avatar">?</div>
+            <span class="user-email" id="topbar-user"></span>
+          </div>
+          <button class="btn btn-sm btn-ghost" onclick="signOut()">Sign out</button>
+        </div>
+      </aside>
+
+      <!-- MAIN -->
+      <div class="app-main">
+        <header class="app-header">
+          <div class="header-title" id="header-title">Dashboard</div>
+          <div class="header-actions">
+            <span class="sync-indicator" id="sync-status"></span>
+            <button class="btn btn-sm btn-ghost" onclick="exportExcel()">⬇ Export Excel</button>
+            <button class="btn btn-primary btn-sm" onclick="submitSheet()">✓ Submit Week</button>
+          </div>
+        </header>
+
+        <div class="app-content">
 
       <!-- DASHBOARD -->
       <div id="dashboard-view">
@@ -116,6 +144,7 @@
           <div class="stat-card"><div class="stat-label">Total Hours</div><div class="stat-value" id="stat-total">0<span class="unit">h</span></div></div>
           <div class="stat-card"><div class="stat-label">This Week</div><div class="stat-value" id="stat-week">0<span class="unit">h</span></div></div>
           <div class="stat-card"><div class="stat-label">This Month</div><div class="stat-value" id="stat-month">0<span class="unit">h</span></div></div>
+          <div class="stat-card"><div class="stat-label">Submitted</div><div class="stat-value" id="stat-submitted">0</div></div>
           <div class="stat-card"><div class="stat-label">Weeks Tracked</div><div class="stat-value" id="stat-weeks">0</div></div>
         </div>
         <div class="chart-grid">
@@ -131,6 +160,10 @@
             <div class="chart-title">Hours by Rate</div>
             <div class="chart-box"><canvas id="chart-rate"></canvas></div>
           </div>
+        </div>
+        <div class="chart-card recent-card">
+          <div class="chart-title">Recent Weeks</div>
+          <table class="recent-table"><tbody id="recent-weeks"></tbody></table>
         </div>
         <div id="dash-empty" class="dash-empty">No hours logged yet — add some on the Timesheet tab.</div>
       </div>
@@ -176,7 +209,10 @@
         <div class="summary-item"><label>All time</label><div class="val" id="sum-total">0.0 h</div></div>
       </div>
       </div><!-- /timesheet-view -->
-    </div>
+
+        </div><!-- /app-content -->
+      </div><!-- /app-main -->
+    </div><!-- /app-shell -->
   </div>
 
   <div class="toast" id="toast"></div>

@@ -2,7 +2,8 @@ import Chart from 'chart.js/auto'
 import { allSheets } from './data.js'
 import { weekKey, fmtShort } from './timesheet.js'
 
-const PALETTE = ['#6366f1', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#14b8a6', '#ef4444', '#f97316', '#84cc16']
+// B&W + indigo accent: an indigo ramp followed by a neutral grey ramp
+const PALETTE = ['#4f46e5', '#6366f1', '#818cf8', '#a5b4fc', '#c7d2fe', '#3f3f46', '#71717a', '#a1a1aa', '#d4d4d8', '#e4e4e7']
 
 let charts = []
 
@@ -39,12 +40,16 @@ export function renderDashboard() {
   setStat('stat-total', total)
   setStat('stat-week', weekHrs)
   setStat('stat-month', monthHrs)
+  el('stat-submitted').textContent = Object.values(allSheets).filter(s => s.status === 'Submitted').length
   el('stat-weeks').textContent = byWeek.filter(w => w.hrs > 0).length
+
+  renderRecentWeeks(byWeek)
 
   // Empty state
   const hasData = total > 0
   el('dash-empty').style.display = hasData ? 'none' : 'block'
   el('chart-week').closest('.chart-grid').style.display = hasData ? 'grid' : 'none'
+  el('recent-weeks').closest('.chart-card').style.display = hasData ? 'block' : 'none'
   if (!hasData) return
 
   // Aggregate by project / rate
@@ -100,4 +105,34 @@ export function renderDashboard() {
 
   charts.push(donut('chart-project', byProject))
   charts.push(donut('chart-rate', byRate))
+}
+
+function parseLocal(wk) {
+  const [y, m, d] = wk.split('-').map(Number)
+  return new Date(y, m - 1, d)
+}
+
+function weekLabel(wk) {
+  const s = parseLocal(wk)
+  const e = new Date(s)
+  e.setDate(e.getDate() + 6)
+  return `${fmtShort(s)} – ${fmtShort(e)}`
+}
+
+function renderRecentWeeks(byWeek) {
+  const recent = [...byWeek].reverse().slice(0, 8)   // most recent first
+  const max = Math.max(...recent.map(w => w.hrs), 1)
+  el('recent-weeks').innerHTML = recent.map(w => {
+    const status = allSheets[w.wk].status
+    const badge = status === 'Submitted'
+      ? '<span class="status-badge submitted">Submitted</span>'
+      : '<span class="status-badge">Draft</span>'
+    const pct = Math.round((w.hrs / max) * 100)
+    return `<tr>
+      <td class="rt-week">${weekLabel(w.wk)}</td>
+      <td class="rt-bar"><div class="rt-bar-track"><div class="rt-bar-fill" style="width:${pct}%"></div></div></td>
+      <td>${badge}</td>
+      <td class="rt-hours">${w.hrs.toFixed(1)} h</td>
+    </tr>`
+  }).join('')
 }
