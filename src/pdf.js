@@ -60,7 +60,11 @@ export function buildTimesheetPDF(meta, rows) {
     headStyles: { fillColor: WSP_RED, textColor: 255 },
     columnStyles: { 0: { cellWidth: 120 }, 1: { cellWidth: 200 } },
     didParseCell: (d) => {
-      if (d.row.index === body.length - 1) { d.cell.styles.fontStyle = 'bold'; d.cell.styles.fillColor = [245, 245, 244] }
+      // Body only — otherwise a single-row table makes the header match and
+      // repaints it light, hiding the white day labels.
+      if (d.section === 'body' && d.row.index === body.length - 1) {
+        d.cell.styles.fontStyle = 'bold'; d.cell.styles.fillColor = [245, 245, 244]
+      }
     }
   })
 
@@ -144,7 +148,9 @@ export function buildRangePDF(meta, weeks) {
     headStyles: { fillColor: WSP_RED, textColor: 255 },
     columnStyles: { 0: { cellWidth: 52 }, 1: { cellWidth: 92 }, 2: { cellWidth: 150 } },
     didParseCell: (d) => {
-      if (d.row.index === body.length - 1) { d.cell.styles.fontStyle = 'bold'; d.cell.styles.fillColor = [245, 245, 244] }
+      if (d.section === 'body' && d.row.index === body.length - 1) {
+        d.cell.styles.fontStyle = 'bold'; d.cell.styles.fillColor = [245, 245, 244]
+      }
     }
   })
 

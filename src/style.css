@@ -17,7 +17,7 @@
   color-scheme: dark;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; font-size: 15px; -webkit-text-size-adjust: 100%; }
 
 /* WSP wordmark lockup (swap /wsp-logo.svg for the official asset) */
 .brand-mark { height: 30px; width: auto; display: block; }
@@ -94,7 +94,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .sidebar-brand .brand-mark { height: 22px; }
 
 .sidebar-nav { display: flex; flex-direction: column; gap: 2px; flex: 1; }
-.nav-item { display: flex; align-items: center; gap: 11px; padding: 10px 12px; border-radius: 9px; font-size: 13.5px; font-weight: 500; color: rgba(255,255,255,.6); cursor: pointer; transition: all .12s; }
+.nav-item { display: flex; align-items: center; gap: 11px; padding: 11px 12px; border-radius: 9px; font-size: 14.5px; font-weight: 500; color: rgba(255,255,255,.6); cursor: pointer; transition: all .12s; }
 .nav-item svg { width: 17px; height: 17px; fill: currentColor; flex-shrink: 0; }
 .nav-item:hover { background: rgba(255,255,255,.07); color: #fff; }
 .nav-item.active { background: var(--accent); color: #fff; }
@@ -121,13 +121,13 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 
 .stat-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin-bottom: 14px; }
 .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 18px 20px; }
-.stat-label { font-size: 11px; color: var(--muted); font-weight: 600; margin-bottom: 8px; text-transform: uppercase; letter-spacing: .05em; }
+.stat-label { font-size: 12px; color: var(--muted); font-weight: 600; margin-bottom: 8px; text-transform: uppercase; letter-spacing: .05em; }
 .stat-value { font-size: 28px; font-weight: 700; color: var(--text); line-height: 1; }
 .stat-value .unit { font-size: 14px; color: var(--muted); font-weight: 500; margin-left: 3px; }
 
 .chart-grid { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 14px; margin-bottom: 14px; }
 .chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 20px; }
-.chart-title { font-size: 13px; font-weight: 600; color: var(--text-dim); margin-bottom: 14px; }
+.chart-title { font-size: 14px; font-weight: 600; color: var(--text-dim); margin-bottom: 14px; }
 .chart-box { position: relative; height: 260px; }
 .dash-empty { text-align: center; color: var(--muted); padding: 48px; font-size: 14px; }
 
@@ -148,8 +148,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .approval-emp { font-size: 15px; font-weight: 700; color: var(--text); }
 .approval-sub { font-size: 12px; color: var(--muted); margin-top: 3px; }
 .approval-actions { display: flex; gap: 8px; flex-shrink: 0; align-items: center; }
-.approval-entries { width: 100%; font-size: 12px; border-top: 1px solid var(--border-soft); }
-.approval-entries th { text-align: left; padding: 8px 6px; font-size: 10px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-weight: 600; }
+.approval-entries { width: 100%; font-size: 13px; border-top: 1px solid var(--border-soft); }
+.approval-entries th { text-align: left; padding: 8px 6px; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-weight: 600; }
 .approval-entries td { padding: 7px 6px; border-bottom: 1px solid var(--border-soft); }
 .approval-entries tr:last-child td { border-bottom: none; }
 .approval-entries .ae-hrs { text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
@@ -161,15 +161,15 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 #logs-view.visible { display: block; }
 .admin-section { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 22px; margin-bottom: 16px; }
 .admin-h { font-size: 15px; font-weight: 700; margin-bottom: 4px; color: var(--text); }
-.admin-desc { font-size: 12px; color: var(--muted); margin-bottom: 16px; max-width: 640px; }
+.admin-desc { font-size: 13px; color: var(--muted); margin-bottom: 16px; max-width: 640px; }
 .admin-form { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 16px; }
 .af-field { display: flex; flex-direction: column; gap: 5px; }
 .af-field.af-grow { flex: 1; min-width: 200px; }
 .af-field label { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
-.af-field input, .af-field select { border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; font-size: 13px; font-family: inherit; color: var(--text); background: var(--surface-2); min-width: 150px; }
+.af-field input, .af-field select { border: 1px solid var(--border); border-radius: 8px; padding: 9px 11px; font-size: 14px; font-family: inherit; color: var(--text); background: var(--surface-2); min-width: 150px; }
 .af-field input:focus, .af-field select:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: var(--accent); }
-.admin-table { width: 100%; font-size: 13px; border-top: 1px solid var(--border-soft); }
-.admin-table th { text-align: left; padding: 9px 8px; font-size: 10px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-weight: 600; }
+.admin-table { width: 100%; font-size: 13.5px; border-top: 1px solid var(--border-soft); }
+.admin-table th { text-align: left; padding: 10px 8px; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-weight: 600; }
 .admin-table td { padding: 9px 8px; border-bottom: 1px solid var(--border-soft); }
 .admin-table tr:last-child td { border-bottom: none; }
 .admin-table .ad-right { text-align: right; }
@@ -195,7 +195,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 }
 
 /* ── BUTTONS ── */
-.btn { display: inline-flex; align-items: center; gap: 5px; padding: 7px 13px; border-radius: 7px; font-size: 12px; font-weight: 500; cursor: pointer; border: 1px solid var(--border); background: var(--surface-2); color: var(--text); transition: background 0.1s, border-color 0.1s; white-space: nowrap; font-family: inherit; }
+.btn { display: inline-flex; align-items: center; gap: 5px; padding: 8px 14px; border-radius: 7px; font-size: 13px; font-weight: 500; cursor: pointer; border: 1px solid var(--border); background: var(--surface-2); color: var(--text); transition: background 0.1s, border-color 0.1s; white-space: nowrap; font-family: inherit; }
 .btn:hover { background: var(--raised); }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
@@ -206,7 +206,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .btn-success:hover { background: #15803d; }
 .btn-danger { color: #f87171; border-color: rgba(248,113,113,.4); background: transparent; }
 .btn-danger:hover { background: rgba(248,113,113,.12); }
-.btn-sm { padding: 5px 9px; font-size: 11px; }
+.btn-sm { padding: 6px 11px; font-size: 12px; }
 .btn-full { width: 100%; justify-content: center; padding: 10px; font-size: 14px; margin-top: 4px; }
 
 /* ── LAYOUT ── */
@@ -232,18 +232,18 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 
 /* ── TABLE ── */
 .grid-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-thead th { background: var(--surface-2); padding: 9px 10px; text-align: center; font-size: 10px; font-weight: 600; color: var(--muted); border-bottom: 1px solid var(--border); letter-spacing: 0.05em; text-transform: uppercase; white-space: nowrap; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+thead th { background: var(--surface-2); padding: 10px 10px; text-align: center; font-size: 11px; font-weight: 600; color: var(--muted); border-bottom: 1px solid var(--border); letter-spacing: 0.05em; text-transform: uppercase; white-space: nowrap; }
 thead th:first-child, thead th:nth-child(2) { text-align: left; }
 tbody td { padding: 7px 8px; border-bottom: 1px solid var(--border-soft); vertical-align: middle; color: var(--text); }
 tbody tr:last-child td { border-bottom: none; }
 tbody tr:hover td { background: var(--surface-2); }
 
-.rate-select { width: 100%; min-width: 160px; border: 1px solid var(--border); border-radius: 6px; padding: 5px 8px; font-size: 11px; color: var(--text); background: var(--surface-2); font-family: inherit; }
-.proj-select { width: 100%; min-width: 220px; max-width: 320px; border: 1px solid var(--border); border-radius: 6px; padding: 5px 8px; font-size: 11px; color: var(--text); background: var(--surface-2); font-family: inherit; }
+.rate-select { width: 100%; min-width: 160px; border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px; font-size: 12.5px; color: var(--text); background: var(--surface-2); font-family: inherit; }
+.proj-select { width: 100%; min-width: 220px; max-width: 320px; border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px; font-size: 12.5px; color: var(--text); background: var(--surface-2); font-family: inherit; }
 .rate-select:focus, .proj-select:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
 
-.hours-input { width: 64px; border: 1px solid var(--border); border-radius: 6px; padding: 5px 6px; font-size: 12px; text-align: center; color: var(--text); background: var(--surface-2); font-family: inherit; }
+.hours-input { width: 68px; border: 1px solid var(--border); border-radius: 6px; padding: 6px 6px; font-size: 13px; text-align: center; color: var(--text); background: var(--surface-2); font-family: inherit; }
 .hours-input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
 .hours-input.has-value { background: var(--accent-soft); border-color: var(--accent); font-weight: 600; }
 
@@ -320,8 +320,44 @@ td.col-delete { text-align: center; }
 .appr-section { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin: 22px 0 10px; }
 .appr-section:first-child { margin-top: 0; }
 
+@media (max-width: 1000px) {
+  .sidebar-nav { overflow-x: auto; }
+}
+
 @media (max-width: 640px) {
-  .topbar-user, .sync-indicator { display: none; }
+  .sync-indicator { display: none; }
   .summary-divider { display: none; }
   .auth-card { padding: 28px 20px; }
+
+  /* Header: title on top, actions wrap to a scrollable row below */
+  .app-header { height: auto; min-height: 54px; padding: 10px 14px; flex-wrap: wrap; gap: 8px; }
+  .header-title { font-size: 16px; }
+  .header-actions { width: 100%; gap: 8px; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 2px; }
+  .header-actions .btn { flex: 0 0 auto; }
+  .app-content { padding: 16px 12px; }
+
+  /* Notification dropdown spans the width on small screens */
+  .notif-panel { position: fixed; top: 56px; left: 10px; right: 10px; width: auto; }
+
+  /* Week nav + meta stack */
+  .week-nav { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .nav-btns { width: 100%; }
+  .nav-btns .btn { flex: 1; justify-content: center; }
+  .sheet-meta { gap: 14px 20px; }
+  .summary-bar { gap: 14px 22px; }
+
+  /* Admin / forms go full width */
+  .admin-section { padding: 18px 16px; }
+  .admin-form { flex-direction: column; align-items: stretch; }
+  .af-field { min-width: 0; }
+  .af-field input, .af-field select { min-width: 0; width: 100%; }
+
+  /* Modal fills more of the screen, footer stacks */
+  .modal { max-height: 92vh; }
+  .modal-foot { flex-direction: column; align-items: stretch; }
+  .modal-foot > div { justify-content: flex-end; }
+
+  /* Keep form controls ≥16px so iOS doesn't zoom on focus */
+  .field input, .af-field input, .af-field select, #send-to, .hours-input,
+  .rate-select, .proj-select { font-size: 16px; }
 }
