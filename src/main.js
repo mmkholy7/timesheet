@@ -3,7 +3,23 @@ import { initAuth, handleAuth, signOut, toggleAuthMode, requestPasswordReset, up
 import { loadAllSheets, loadProfile, loadProjects, setUser, clearSheets } from './data.js'
 import { render, addRow, submitSheet, prevWeek, nextWeek, goToday } from './timesheet.js'
 import { exportExcel } from './export.js'
+import { renderDashboard } from './dashboard.js'
 import { showLoading, hideLoading, showAuth, showApp, showRecovery } from './ui.js'
+
+// ── Dashboard / Timesheet view switching ──
+function setView(view) {
+  const dash = document.getElementById('dashboard-view')
+  const ts = document.getElementById('timesheet-view')
+  const tabDash = document.getElementById('tab-dashboard')
+  const tabTs = document.getElementById('tab-timesheet')
+  const isDash = view === 'dashboard'
+  dash.classList.toggle('visible', isDash)
+  ts.classList.toggle('visible', !isDash)
+  tabDash.classList.toggle('active', isDash)
+  tabTs.classList.toggle('active', !isDash)
+  if (isDash) renderDashboard()
+}
+window.setView = setView
 
 // ── Wire up global button handlers (called from HTML onclick) ──
 window.handleAuth = handleAuth
@@ -30,6 +46,7 @@ initAuth({
     await loadAllSheets()
     hideLoading()
     render()
+    setView('dashboard')
   },
   onSignOut: () => {
     clearSheets()

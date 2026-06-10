@@ -73,6 +73,38 @@
     </div>
 
     <div class="container">
+      <div class="view-tabs">
+        <button id="tab-dashboard" class="view-tab active" onclick="setView('dashboard')">Dashboard</button>
+        <button id="tab-timesheet" class="view-tab" onclick="setView('timesheet')">Timesheet</button>
+      </div>
+
+      <!-- DASHBOARD -->
+      <div id="dashboard-view">
+        <div class="stat-grid">
+          <div class="stat-card"><div class="stat-label">Total Hours</div><div class="stat-value" id="stat-total">0<span class="unit">h</span></div></div>
+          <div class="stat-card"><div class="stat-label">This Week</div><div class="stat-value" id="stat-week">0<span class="unit">h</span></div></div>
+          <div class="stat-card"><div class="stat-label">This Month</div><div class="stat-value" id="stat-month">0<span class="unit">h</span></div></div>
+          <div class="stat-card"><div class="stat-label">Weeks Tracked</div><div class="stat-value" id="stat-weeks">0</div></div>
+        </div>
+        <div class="chart-grid">
+          <div class="chart-card">
+            <div class="chart-title">Hours by Week</div>
+            <div class="chart-box"><canvas id="chart-week"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-title">Hours by Project</div>
+            <div class="chart-box"><canvas id="chart-project"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-title">Hours by Rate</div>
+            <div class="chart-box"><canvas id="chart-rate"></canvas></div>
+          </div>
+        </div>
+        <div id="dash-empty" class="dash-empty">No hours logged yet — add some on the Timesheet tab.</div>
+      </div>
+
+      <!-- TIMESHEET -->
+      <div id="timesheet-view">
       <div class="week-nav">
         <div>
           <div class="week-label" id="week-label"></div>
@@ -111,6 +143,7 @@
         <div class="summary-divider"></div>
         <div class="summary-item"><label>All time</label><div class="val" id="sum-total">0.0 h</div></div>
       </div>
+      </div><!-- /timesheet-view -->
     </div>
   </div>
 

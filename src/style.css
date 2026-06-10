@@ -28,6 +28,35 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 #app-screen { display: none; }
 #app-screen.visible { display: block; }
 
+/* ── VIEW TABS ── */
+.view-tabs { display: flex; gap: 6px; margin-bottom: 20px; }
+.view-tab { padding: 8px 16px; border: 1px solid #e5e5e3; background: #fff; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; color: #6b7280; font-family: inherit; transition: all .12s; }
+.view-tab:hover { border-color: #d4d4d2; }
+.view-tab.active { background: #1c1c1a; color: #fff; border-color: #1c1c1a; }
+
+/* ── DASHBOARD ── */
+#dashboard-view { display: none; }
+#dashboard-view.visible { display: block; }
+#timesheet-view { display: none; }
+#timesheet-view.visible { display: block; }
+
+.stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 16px; }
+.stat-card { background: #fff; border: 1px solid #e5e5e3; border-radius: 14px; padding: 20px 22px; }
+.stat-label { font-size: 11px; color: #9ca3af; font-weight: 600; margin-bottom: 8px; text-transform: uppercase; letter-spacing: .05em; }
+.stat-value { font-size: 30px; font-weight: 700; color: #1c1c1a; line-height: 1; }
+.stat-value .unit { font-size: 14px; color: #9ca3af; font-weight: 500; margin-left: 3px; }
+
+.chart-grid { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 16px; }
+.chart-card { background: #fff; border: 1px solid #e5e5e3; border-radius: 14px; padding: 20px; }
+.chart-title { font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 14px; }
+.chart-box { position: relative; height: 270px; }
+.dash-empty { text-align: center; color: #9ca3af; padding: 48px; font-size: 14px; }
+
+@media (max-width: 900px) {
+  .stat-grid { grid-template-columns: repeat(2, 1fr); }
+  .chart-grid { grid-template-columns: 1fr; }
+}
+
 .topbar { background: #fff; border-bottom: 1px solid #e5e5e3; padding: 0 24px; display: flex; align-items: center; gap: 14px; height: 54px; position: sticky; top: 0; z-index: 10; }
 .topbar-logo { width: 28px; height: 28px; background: #1c1c1a; border-radius: 7px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .topbar-logo svg { width: 15px; height: 15px; fill: #fff; }
