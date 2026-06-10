@@ -280,6 +280,10 @@ td.col-delete { text-align: center; }
 .sp-week-hrs { color: #6b7280; font-variant-numeric: tabular-nums; }
 .sp-summary { font-size: 12px; color: #6b7280; }
 
+/* ── APPROVALS section headings ── */
+.appr-section { font-size: 12px; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: .05em; margin: 22px 0 10px; }
+.appr-section:first-child { margin-top: 0; }
+
 @media (max-width: 640px) {
   .topbar-user, .sync-indicator { display: none; }
   .summary-divider { display: none; }
