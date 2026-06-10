@@ -83,15 +83,28 @@ export async function handleAuth() {
   }
 }
 
+export async function signInWithGoogle() {
+  const { error } = await sb.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: window.location.origin }
+  })
+  if (error) showAuthErr(error.message)
+  // On success the browser redirects to Google, then back to the app where
+  // supabase-js picks up the session and fires SIGNED_IN.
+}
+
 export async function signOut() {
   await sb.auth.signOut()
 }
 
 export function toggleAuthMode() {
   authMode = authMode === 'signin' ? 'signup' : 'signin'
-  document.getElementById('auth-btn').textContent = authMode === 'signin' ? 'Sign in' : 'Create account'
-  document.getElementById('auth-toggle-text').textContent = authMode === 'signin' ? "Don't have an account?" : 'Already have an account?'
-  document.getElementById('auth-toggle-link').textContent = authMode === 'signin' ? 'Sign up' : 'Sign in'
+  const signin = authMode === 'signin'
+  document.getElementById('auth-title').textContent = signin ? 'Welcome back' : 'Create your account'
+  document.getElementById('auth-sub').textContent = signin ? 'Sign in to access your timesheets' : 'Sign up to start tracking your time'
+  document.getElementById('auth-btn').textContent = signin ? 'Sign in' : 'Create account'
+  document.getElementById('auth-toggle-text').textContent = signin ? "Don't have an account?" : 'Already have an account?'
+  document.getElementById('auth-toggle-link').textContent = signin ? 'Sign up' : 'Sign in'
   document.getElementById('auth-err').style.display = 'none'
 }
 

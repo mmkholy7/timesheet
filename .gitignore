@@ -1,5 +1,12 @@
 node_modules/
 dist/
 .env
+.env.*
+!.env.example
 .DS_Store
 *.log
+
+# Never commit OAuth / service-account secrets
+client_secret_*.json
+*credentials*.json
+*service-account*.json
