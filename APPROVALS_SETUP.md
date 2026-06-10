@@ -17,6 +17,28 @@ two edge functions.
    to your DNS → wait for **Verified** (can take minutes–hours).
 3. **API Keys → Create** → copy the key (starts with `re_`).
 
+## 2b. Custom SMTP for Auth emails (stops invites going to spam)
+Supabase's **default** mail service sends invite/recovery/confirmation emails from a
+generic domain → they land in spam. Route them through your verified domain instead:
+
+**Supabase → Project Settings → Authentication → SMTP Settings → enable Custom SMTP**
+
+| Field | Value |
+|---|---|
+| Host | `smtp.resend.com` |
+| Port | `465` (SSL) or `587` (TLS) |
+| Username | `resend` |
+| Password | Resend API key (`re_…`) |
+| Sender email | `no-reply@uably.com` (verified domain) |
+| Sender name | `Timesheet` |
+
+Also add a **DMARC** record for deliverability:
+```
+_dmarc.uably.com   TXT   "v=DMARC1; p=none; rua=mailto:dmarc@uably.com"
+```
+Note: `uably.com` is on Microsoft 365, so it already has an SPF record — authenticate
+Resend via **DKIM** (and a `send.` subdomain return-path) so the two don't conflict.
+
 ## 3. Supabase secrets
 Set these so the functions can send mail (Dashboard → Edge Functions → Secrets, or CLI):
 ```bash
