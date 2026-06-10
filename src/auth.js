@@ -12,6 +12,18 @@ export function initAuth(opts) {
   // the "set new password" screen instead of dropping the user into the app.
   if (window.location.hash.includes('type=recovery')) recovering = true
 
+  // Surface OAuth / redirect errors that come back in the URL (e.g. a failed
+  // Google/Microsoft sign-in) instead of silently showing the login page.
+  const errParams = new URLSearchParams(
+    (window.location.hash.startsWith('#') ? window.location.hash.slice(1) : '') ||
+    window.location.search.slice(1)
+  )
+  const oauthErr = errParams.get('error_description') || errParams.get('error')
+  if (oauthErr) {
+    showAuthErr(decodeURIComponent(oauthErr).replace(/\+/g, ' '))
+    history.replaceState(null, '', window.location.pathname)
+  }
+
   // supabase-js auto-processes the token in the URL (detectSessionInUrl is on),
   // then emits these events.
   sb.auth.onAuthStateChange((event, session) => {
