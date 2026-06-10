@@ -227,6 +227,21 @@ export async function createUserAccount(email, fullName, role) {
   }
 }
 
+// Email a timesheet PDF (built client-side) to an address via the
+// email-timesheet edge function. The sender is always CC'd.
+export async function emailTimesheetPDF({ to, periodLabel, base64, filename }) {
+  try {
+    const { data, error } = await sb.functions.invoke('email-timesheet', {
+      body: { to, period: periodLabel, pdf_base64: base64, filename }
+    })
+    if (error || data?.error) { toast('Send failed: ' + (data?.error || error.message)); return false }
+    return true
+  } catch {
+    toast('This needs the email-timesheet function deployed.')
+    return false
+  }
+}
+
 // Admin: change a user's role (RLS lets admins update any profile).
 export async function updateProfileRole(id, role) {
   const { error } = await sb.from('profiles').update({ role }).eq('id', id)

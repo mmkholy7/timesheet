@@ -76,3 +76,66 @@ function fmtStamp(iso) {
   const d = new Date(iso)
   return d.toISOString().replace('T', ' ').slice(0, 19)
 }
+
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+function weekShort(wk) {
+  const [y, m, d] = wk.split('-').map(Number)
+  const dt = new Date(y, m - 1, d)
+  return `${MONTHS[dt.getMonth()]} ${dt.getDate()}`
+}
+
+// Build a single PDF covering multiple weeks as one combined table, labelled by
+// week (Sun..Sat columns), with a single grand total.
+// meta: { employee, periodLabel, fileTag }
+// weeks: [{ weekStart: 'YYYY-MM-DD', rows: [{ rate, proj, hours[7] }] }]
+export function buildRangePDF(meta, weeks) {
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' })
+  const generatedAt = new Date()
+  const grand = weeks.reduce((a, w) => a + totalHours(w.rows), 0)
+
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(18)
+  doc.text('Timesheet', 40, 44)
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(110)
+  doc.text(meta.periodLabel || '', 40, 62)
+
+  doc.setTextColor(30); doc.setFontSize(10)
+  const infoX = 40, infoY = 88, gap = 240
+  const line = (x, y, label, val) => {
+    doc.setTextColor(140); doc.text(label, x, y)
+    doc.setTextColor(30); doc.setFont('helvetica', 'bold'); doc.text(String(val || '—'), x, y + 14)
+    doc.setFont('helvetica', 'normal')
+  }
+  line(infoX, infoY, 'Employee', meta.employee)
+  line(infoX + gap, infoY, 'Weeks', String(weeks.length))
+  line(infoX + gap * 2, infoY, 'Total Hours', grand.toFixed(2))
+
+  const head = [['Week', 'Rate', 'Project Code', ...DAYS, 'Total']]
+  const body = []
+  weeks.forEach(w => {
+    const label = weekShort(w.weekStart)
+    w.rows.forEach(r => body.push([
+      label, r.rate, r.proj,
+      ...r.hours.map(h => (+h || 0) === 0 ? '' : (+h).toString()),
+      totalRow(r).toFixed(2)
+    ]))
+  })
+  body.push(['', '', 'GRAND TOTAL', '', '', '', '', '', '', '', grand.toFixed(2)])
+
+  autoTable(doc, {
+    head, body, startY: 120,
+    styles: { fontSize: 8, cellPadding: 4 },
+    headStyles: { fillColor: [28, 28, 26], textColor: 255 },
+    columnStyles: { 0: { cellWidth: 52 }, 1: { cellWidth: 92 }, 2: { cellWidth: 150 } },
+    didParseCell: (d) => {
+      if (d.row.index === body.length - 1) { d.cell.styles.fontStyle = 'bold'; d.cell.styles.fillColor = [245, 245, 244] }
+    }
+  })
+
+  let y = doc.lastAutoTable.finalY + 24
+  doc.setTextColor(150); doc.setFontSize(8)
+  doc.text(`Generated ${fmtStamp(generatedAt.toISOString())} · UTC`, 40, y)
+
+  const filename = `Timesheet_${(meta.employee || 'user').split('@')[0]}_${meta.fileTag || 'range'}.pdf`
+  const base64 = doc.output('datauristring').split(',')[1]
+  return { doc, base64, filename }
+}

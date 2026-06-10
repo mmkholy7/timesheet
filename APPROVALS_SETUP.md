@@ -105,6 +105,7 @@ supabase functions deploy notify-submission
 supabase functions deploy confirm-approval
 supabase functions deploy invite-approver
 supabase functions deploy admin-create-user
+supabase functions deploy email-timesheet
 ```
 
 (Or deploy any of these from the Dashboard → **Edge Functions → Via Editor**: name it

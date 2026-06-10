@@ -3,6 +3,7 @@ import { initAuth, handleAuth, signOut, toggleAuthMode, requestPasswordReset, up
 import { loadAllSheets, loadProfile, loadProjects, setUser, clearSheets } from './data.js'
 import { render, addRow, submitSheet, submitAndSend, prevWeek, nextWeek, goToday, toggleWeekend } from './timesheet.js'
 import { exportExcel } from './export.js'
+import { openSendPdf, closeSendPdf, sendPdfQuick, sendPdfNow } from './sendpdf.js'
 import { renderDashboard } from './dashboard.js'
 import { renderApprovals } from './approvals.js'
 import { renderAdmin } from './admin.js'
@@ -53,6 +54,10 @@ window.nextWeek = nextWeek
 window.goToday = goToday
 window.toggleWeekend = toggleWeekend
 window.exportExcel = exportExcel
+window.openSendPdf = openSendPdf
+window.closeSendPdf = closeSendPdf
+window.sendPdfQuick = sendPdfQuick
+window.sendPdfNow = sendPdfNow
 
 // ── Boot ──
 showLoading()

@@ -142,6 +142,7 @@
           <div class="header-actions">
             <span class="sync-indicator" id="sync-status"></span>
             <button class="btn btn-sm btn-ghost" onclick="exportExcel()">⬇ Export Excel</button>
+            <button class="btn btn-sm btn-ghost" onclick="openSendPdf()">✉ Email PDF</button>
             <button class="btn btn-sm" onclick="submitSheet()">✓ Submit</button>
             <button class="btn btn-primary btn-sm" onclick="submitAndSend()">✉ Submit &amp; Send for Approval</button>
           </div>
@@ -249,6 +250,36 @@
         </div><!-- /app-content -->
       </div><!-- /app-main -->
     </div><!-- /app-shell -->
+  </div>
+
+  <!-- EMAIL PDF MODAL -->
+  <div id="sendpdf-modal" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-head">
+        <h3>Email timesheet PDF</h3>
+        <button class="modal-x" onclick="closeSendPdf()" aria-label="Close">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="af-field af-grow">
+          <label>Send to</label>
+          <input id="send-to" type="email" placeholder="name@company.com">
+        </div>
+        <div class="sp-quick">
+          <span class="sp-quick-label">Pick weeks:</span>
+          <button class="btn btn-sm" onclick="sendPdfQuick('week')">This week</button>
+          <button class="btn btn-sm" onclick="sendPdfQuick('month')">This month</button>
+          <button class="btn btn-sm btn-ghost" onclick="sendPdfQuick('clear')">Clear</button>
+        </div>
+        <div class="sp-weeks" id="sp-weeks"></div>
+      </div>
+      <div class="modal-foot">
+        <span id="sp-summary" class="sp-summary">No weeks selected</span>
+        <div>
+          <button class="btn btn-sm btn-ghost" onclick="closeSendPdf()">Cancel</button>
+          <button class="btn btn-primary btn-sm" id="sp-send" onclick="sendPdfNow()" disabled>Send PDF</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <div class="toast" id="toast"></div>
