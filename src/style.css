@@ -37,11 +37,11 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
   -webkit-mask-image: radial-gradient(ellipse at 30% 30%, #000 35%, transparent 80%);
           mask-image: radial-gradient(ellipse at 30% 30%, #000 35%, transparent 80%);
 }
-.auth-brand-inner { position: relative; height: 100%; padding: 56px; display: flex; flex-direction: column; justify-content: space-between; }
+.auth-brand-inner { position: relative; height: 100%; padding: 56px; display: flex; flex-direction: column; justify-content: center; }
 .auth-brand .brand-mark { height: 34px; }
 .brand-tag h2 { font-size: 36px; font-weight: 700; line-height: 1.12; letter-spacing: -0.025em; }
 .brand-tag p { font-size: 15px; line-height: 1.55; color: rgba(255,255,255,.55); margin-top: 18px; max-width: 330px; }
-.brand-foot { font-size: 12px; color: rgba(255,255,255,.4); }
+.brand-foot { font-size: 12px; color: rgba(255,255,255,.4); position: absolute; bottom: 56px; left: 56px; }
 
 /* Form panel */
 .auth-form-panel { display: flex; align-items: center; justify-content: center; padding: 32px 24px; background: var(--surface); }
