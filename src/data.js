@@ -15,7 +15,7 @@ export function setUser(userId) {
 export async function loadProfile() {
   const { data, error } = await sb
     .from('profiles')
-    .select('id, email, full_name, role')
+    .select('id, email, full_name, role, organization_id, organizations(name, logo_url)')
     .eq('id', currentUserId)
     .single()
   if (error) { toast('Error loading profile: ' + error.message); return null }

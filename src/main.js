@@ -34,6 +34,19 @@ function setView(view) {
 window.setView = setView
 window.comingSoon = (name) => toast(`${name} is coming in the next update.`)
 
+// Swap the sidebar logo to the org's brand, or hide it if no org is assigned.
+function applyOrgBrand(org) {
+  const el = document.getElementById('sidebar-logo')
+  if (!el) return
+  if (org?.logo_url) {
+    el.src = org.logo_url
+    el.alt = org.name
+    el.style.display = ''
+  } else {
+    el.style.display = 'none'
+  }
+}
+
 // Role-gated nav: managers+admins see Approvals (+ the notification bell);
 // admins also see Admin.
 export function applyRoleNav(role) {
@@ -79,6 +92,7 @@ initAuth({
     setUser(user.id)
     showApp(user.email)
     const prof = await loadProfile()
+    applyOrgBrand(prof?.organizations)
     await loadProjects()
     await loadAllSheets()
     applyRoleNav(prof?.role)

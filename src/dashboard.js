@@ -2,7 +2,7 @@ import Chart from 'chart.js/auto'
 import { allSheets } from './data.js'
 import { weekKey, fmtShort, goToWeek } from './timesheet.js'
 
-// WSP red ramp followed by a neutral grey ramp (reads well on the dark theme)
+// Accent ramp followed by a neutral grey ramp (reads well on the dark theme)
 const PALETTE = ['#e0241b', '#f0473b', '#f76b60', '#fb8e85', '#fdb0a9', '#5a6373', '#7b8494', '#9aa2b0', '#b9bfca', '#d4d8df']
 const GRID = '#232a37'
 const TICK = '#7b8494'

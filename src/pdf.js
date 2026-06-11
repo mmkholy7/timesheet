@@ -2,16 +2,7 @@ import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-const WSP_RED = [224, 36, 27]
-
-// Draw the WSP wordmark in the top-right corner of the page.
-function wspMark(doc) {
-  const w = doc.internal.pageSize.getWidth()
-  doc.setFont('helvetica', 'bold'); doc.setFontSize(20)
-  doc.setTextColor(WSP_RED[0], WSP_RED[1], WSP_RED[2])
-  doc.text('wsp', w - 40, 46, { align: 'right' })
-  doc.setTextColor(30)
-}
+const HEADER_COLOR = [40, 40, 48]
 
 // Build a timestamped timesheet PDF.
 // meta: { employee, weekStart, weekEnd, status, customer, approvedBy, decidedAt }
@@ -24,7 +15,6 @@ export function buildTimesheetPDF(meta, rows) {
   // Header
   doc.setFont('helvetica', 'bold'); doc.setFontSize(18)
   doc.text('Timesheet', 40, 44)
-  wspMark(doc)
   doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(110)
   const subtitle = [meta.customer && `Customer: ${meta.customer}`, meta.project && `Project: ${meta.project}`]
     .filter(Boolean).join('   ·   ')
@@ -57,7 +47,7 @@ export function buildTimesheetPDF(meta, rows) {
   autoTable(doc, {
     head, body, startY: 124,
     styles: { fontSize: 9, cellPadding: 5 },
-    headStyles: { fillColor: WSP_RED, textColor: 255 },
+    headStyles: { fillColor: HEADER_COLOR, textColor: 255 },
     columnStyles: { 0: { cellWidth: 120 }, 1: { cellWidth: 200 } },
     didParseCell: (d) => {
       // Body only — otherwise a single-row table makes the header match and
@@ -115,7 +105,6 @@ export function buildRangePDF(meta, weeks) {
 
   doc.setFont('helvetica', 'bold'); doc.setFontSize(18)
   doc.text('Timesheet', 40, 44)
-  wspMark(doc)
   doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(110)
   doc.text(meta.periodLabel || '', 40, 62)
 
@@ -145,7 +134,7 @@ export function buildRangePDF(meta, weeks) {
   autoTable(doc, {
     head, body, startY: 120,
     styles: { fontSize: 8, cellPadding: 4 },
-    headStyles: { fillColor: WSP_RED, textColor: 255 },
+    headStyles: { fillColor: HEADER_COLOR, textColor: 255 },
     columnStyles: { 0: { cellWidth: 52 }, 1: { cellWidth: 92 }, 2: { cellWidth: 150 } },
     didParseCell: (d) => {
       if (d.section === 'body' && d.row.index === body.length - 1) {

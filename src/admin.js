@@ -112,7 +112,7 @@ async function renderApprovers() {
     <div class="admin-form">
       <div class="af-field"><label>Employee</label><select id="ap-emp">${empOpts}</select></div>
       <div class="af-field af-grow"><label>Project</label><select id="ap-proj">${projOpts}</select></div>
-      <div class="af-field af-grow"><label>Approver email</label><input id="ap-email" type="email" placeholder="boss@wsp.com"></div>
+      <div class="af-field af-grow"><label>Approver email</label><input id="ap-email" type="email" placeholder="approver@example.com"></div>
       <button class="btn btn-primary btn-sm" id="ap-assign">Assign approver</button>
     </div>
     <table class="admin-table">
@@ -160,7 +160,7 @@ async function renderProjects() {
       <button class="btn btn-primary btn-sm" id="pr-add">Add project</button>
     </div>
     <div class="admin-form">
-      <div class="af-field af-grow"><label>New customer</label><input id="cu-name" placeholder="e.g. WSP"></div>
+      <div class="af-field af-grow"><label>New customer</label><input id="cu-name" placeholder="e.g. Acme Corp"></div>
       <button class="btn btn-sm" id="cu-add">Add customer</button>
     </div>
     <table class="admin-table">
