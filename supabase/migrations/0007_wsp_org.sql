@@ -8,13 +8,10 @@
 -- ============================================================
 
 insert into organizations (name, slug, logo_url)
-values (
-  'WSP',
-  'wsp',
-  'https://mmkholy7.github.io/timesheet/wsp-logo.svg'
-)
+values ('WSP', 'wsp', '/wsp-logo.svg')
 on conflict (slug) do update
-  set logo_url = excluded.logo_url;
+  set name     = excluded.name,
+      logo_url = excluded.logo_url;
 
 -- Link the two WSP approver accounts to the WSP org.
 update profiles
