@@ -4,8 +4,10 @@ import { buildTimesheetPDF } from './pdf.js'
 import { sb } from './supabase.js'
 import { refreshNotifications } from './notify.js'
 
+const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 function esc(s) { return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;') }
 function rowHours(h) { return (h || []).reduce((a, x) => a + (+x || 0), 0) }
+function dayCell(v) { const n = +v || 0; return n ? n.toFixed(1) : '<span class="ae-zero">–</span>' }
 function addDays(dateStr, n) {
   const [y, m, d] = dateStr.split('-').map(Number)
   const dt = new Date(y, m - 1, d + n)
@@ -84,10 +86,11 @@ function card(a) {
       <div class="approval-actions">${actions}</div>
     </div>
     <table class="approval-entries">
-      <thead><tr><th>Rate</th><th>Project</th><th>Hours</th></tr></thead>
+      <thead><tr><th>Rate</th><th>Project</th>${DAYS.map(d => `<th class="ae-day">${d}</th>`).join('')}<th>Total</th></tr></thead>
       <tbody>${(a._entries || []).map(e => `<tr>
         <td>${esc(e.rate)}</td>
         <td>${esc(e.projects?.code || '')}</td>
+        ${DAYS.map((_, i) => `<td class="ae-day">${dayCell((e.hours || [])[i])}</td>`).join('')}
         <td class="ae-hrs">${rowHours(e.hours).toFixed(1)} h</td>
       </tr>`).join('')}</tbody>
     </table>`

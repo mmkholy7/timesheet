@@ -152,6 +152,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .approval-entries td { padding: 7px 6px; border-bottom: 1px solid var(--border-soft); }
 .approval-entries tr:last-child td { border-bottom: none; }
 .approval-entries .ae-hrs { text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.approval-entries .ae-day { text-align: center; font-variant-numeric: tabular-nums; }
+.approval-entries .ae-zero { color: var(--muted); }
 
 /* ── ADMIN ── */
 #admin-view { display: none; }
