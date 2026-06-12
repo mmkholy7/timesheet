@@ -154,6 +154,13 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .approval-entries .ae-hrs { text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .approval-entries .ae-day { text-align: center; font-variant-numeric: tabular-nums; }
 .approval-entries .ae-zero { color: var(--muted); }
+.approval-comment { margin: 8px 0 4px; padding: 8px 11px; border-radius: 8px; background: var(--accent-soft); color: var(--text); font-size: 13px; }
+.approval-comment strong { color: var(--accent); }
+.reject-banner { margin-bottom: 14px; padding: 11px 14px; border-radius: 10px; background: var(--accent-soft); border: 1px solid var(--accent); color: var(--text); font-size: 13px; }
+.reject-banner strong { color: var(--accent); }
+.reject-banner .rb-hint { color: var(--muted); }
+.lock-banner { background: rgba(52,211,153,.12); border-color: var(--green); }
+.lock-banner strong { color: var(--green); }
 
 /* ── ADMIN ── */
 #admin-view { display: none; }
@@ -230,6 +237,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .meta-item span { font-size: 13px; font-weight: 500; color: var(--text); }
 .status-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; background: rgba(251,191,36,.16); color: var(--amber); }
 .status-badge.submitted { background: rgba(52,211,153,.16); color: var(--green); }
+.status-badge.rejected { background: var(--accent-soft); color: var(--accent); }
+.status-badge.approved { background: rgba(52,211,153,.20); color: var(--green); border: 1px solid var(--green); }
 
 /* ── TABLE ── */
 .grid-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }

@@ -1,4 +1,5 @@
 import { sb } from './supabase.js'
+import { toast } from './ui.js'
 
 let authMode = 'signin'
 let recovering = false
@@ -99,6 +100,47 @@ export async function updatePassword() {
   recovering = false
   history.replaceState(null, '', window.location.pathname) // strip the recovery hash
   handlers.onSignIn(data.user)
+}
+
+// Signed-in user changing their own password from inside the app (distinct
+// from the logged-out "forgot password" email flow above).
+export async function changePassword() {
+  const pw = document.getElementById('cp-password').value
+  const confirm = document.getElementById('cp-confirm').value
+  const btn = document.getElementById('cp-btn')
+  const err = document.getElementById('cp-err')
+  err.style.display = 'none'
+
+  if (!pw || pw.length < 6) { showCpErr('Password must be at least 6 characters.'); return }
+  if (pw !== confirm) { showCpErr('Passwords do not match.'); return }
+
+  btn.disabled = true; btn.textContent = 'Updating…'
+  const { error } = await sb.auth.updateUser({ password: pw })
+  btn.disabled = false; btn.textContent = 'Update password'
+  if (error) { showCpErr(error.message); return }
+
+  document.getElementById('cp-password').value = ''
+  document.getElementById('cp-confirm').value = ''
+  closeChangePassword()
+  toast('Password updated ✓')
+}
+
+function showCpErr(msg) {
+  const el = document.getElementById('cp-err')
+  el.textContent = msg
+  el.style.display = 'block'
+}
+
+export function openChangePassword() {
+  document.getElementById('cp-err').style.display = 'none'
+  document.getElementById('cp-password').value = ''
+  document.getElementById('cp-confirm').value = ''
+  document.getElementById('changepw-modal').classList.add('open')
+  document.getElementById('cp-password').focus()
+}
+
+export function closeChangePassword() {
+  document.getElementById('changepw-modal').classList.remove('open')
 }
 
 export async function handleAuth() {

@@ -30,8 +30,9 @@ export async function renderApprovals() {
 
   const pending = cache.filter(a => a.status === 'Pending')
   const approved = cache.filter(a => a.status === 'Approved')
+  const rejected = cache.filter(a => a.status === 'Rejected')
 
-  if (!pending.length && !approved.length) {
+  if (!pending.length && !approved.length && !rejected.length) {
     list.innerHTML = '<div class="dash-empty">No timesheets awaiting your approval. 🎉</div>'
     return
   }
@@ -44,6 +45,10 @@ export async function renderApprovals() {
   if (approved.length) {
     list.appendChild(sectionTitle(`Approved (${approved.length})`))
     approved.forEach(a => list.appendChild(card(a)))
+  }
+  if (rejected.length) {
+    list.appendChild(sectionTitle(`Rejected (${rejected.length})`))
+    rejected.forEach(a => list.appendChild(card(a)))
   }
 
   list.querySelectorAll('button[data-act]').forEach(btn => {
@@ -67,13 +72,21 @@ function card(a) {
   const emp = ts?.profiles?.full_name || ts?.profiles?.email || 'Employee'
   const total = (a._entries || []).reduce((s, e) => s + rowHours(e.hours), 0)
   const projLabel = a.projects?.code || a.projects?.customers?.name || 'Project'
-  const isApproved = a.status === 'Approved'
 
-  const actions = isApproved
-    ? `<span class="status-badge submitted">✓ Approved ${esc(fmtStamp(a.decided_at))}</span>
+  let actions
+  if (a.status === 'Approved') {
+    actions = `<span class="status-badge submitted">✓ Approved ${esc(fmtStamp(a.decided_at))}</span>
        <button class="btn btn-sm btn-primary" data-act="download" data-id="${a.id}">⬇ Download PDF</button>`
-    : `<button class="btn btn-sm" data-act="reject" data-id="${a.id}">Reject</button>
+  } else if (a.status === 'Rejected') {
+    actions = `<span class="status-badge rejected">✕ Rejected ${esc(fmtStamp(a.decided_at))}</span>`
+  } else {
+    actions = `<button class="btn btn-sm" data-act="reject" data-id="${a.id}">Reject</button>
        <button class="btn btn-sm btn-primary" data-act="approve" data-id="${a.id}">✓ Approve</button>`
+  }
+
+  const commentRow = a.comment
+    ? `<div class="approval-comment"><strong>Reason:</strong> ${esc(a.comment)}</div>`
+    : ''
 
   const el = document.createElement('div')
   el.className = 'approval-card'
@@ -85,6 +98,7 @@ function card(a) {
       </div>
       <div class="approval-actions">${actions}</div>
     </div>
+    ${commentRow}
     <table class="approval-entries">
       <thead><tr><th>Rate</th><th>Project</th>${DAYS.map(d => `<th class="ae-day">${d}</th>`).join('')}<th>Total</th></tr></thead>
       <tbody>${(a._entries || []).map(e => `<tr>
@@ -120,15 +134,24 @@ function downloadPdf(a) {
 
 async function decide(btn, approval, act) {
   const decision = act === 'approve' ? 'Approved' : 'Rejected'
+
+  // Rejection: ask the approver for a reason so the employee knows what to fix.
+  let comment = null
+  if (decision === 'Rejected') {
+    comment = (window.prompt('Reason for rejecting (the employee will see this):', '') || '').trim()
+    if (!comment) { toast('Rejection cancelled — a reason is required.'); return }
+  }
+
   btn.disabled = true; btn.textContent = decision === 'Approved' ? 'Approving…' : 'Rejecting…'
 
-  const result = await decideApproval(approval.id, decision)
+  const result = await decideApproval(approval.id, decision, comment)
   if (!result) { btn.disabled = false; return }
 
   logAction(`approval: ${decision.toLowerCase()}`, 'approval', approval.id, {
     employee: approval.timesheets?.profiles?.email,
     project: approval.projects?.code,
-    week: approval.timesheets?.week_start
+    week: approval.timesheets?.week_start,
+    comment: comment || undefined
   })
 
   if (decision === 'Approved') {

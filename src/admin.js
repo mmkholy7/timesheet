@@ -1,18 +1,60 @@
 import {
   loadProfiles, loadCustomers, loadAllProjects, addProject, addCustomer, setProjectActive,
   loadApproverLinks, assignApprover, removeApproverLink, createUserAccount, updateProfileRole,
-  loadAuditLog
+  loadAuditLog, loadOrganizations, addOrganization, deleteOrganization, deleteCustomer, deleteProject,
+  updateProfileOrg
 } from './data.js'
 import { toast } from './ui.js'
 
 function esc(s) { return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;') }
 
 const ROLES = ['employee', 'manager', 'admin']
-let profiles = [], customers = [], allProjects = []
+let profiles = [], customers = [], allProjects = [], organizations = []
 
 export async function renderAdmin() {
-  ;[profiles, customers, allProjects] = await Promise.all([loadProfiles(), loadCustomers(), loadAllProjects()])
-  await Promise.all([renderUsers(), renderApprovers(), renderProjects()])
+  ;[profiles, customers, allProjects, organizations] =
+    await Promise.all([loadProfiles(), loadCustomers(), loadAllProjects(), loadOrganizations()])
+  await Promise.all([renderUsers(), renderApprovers(), renderOrganizations(), renderProjects()])
+}
+
+// ── Organizations (tenants) ──
+async function renderOrganizations() {
+  const rows = organizations.length ? organizations.map(o => `
+    <tr>
+      <td>${esc(o.name)}</td>
+      <td><span class="lg-ent">${esc(o.slug)}</span></td>
+      <td class="ad-right"><button class="btn btn-sm btn-danger" data-org-del="${o.id}" data-name="${esc(o.name)}">Delete</button></td>
+    </tr>`).join('') : '<tr><td colspan="3" class="ad-empty">No organizations yet.</td></tr>'
+
+  document.getElementById('admin-orgs').innerHTML = `
+    <div class="admin-form">
+      <div class="af-field af-grow"><label>Organization name</label><input id="og-name" placeholder="e.g. Acme Corp"></div>
+      <button class="btn btn-primary btn-sm" id="og-add">Add organization</button>
+    </div>
+    <table class="admin-table">
+      <thead><tr><th>Name</th><th>Slug</th><th></th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`
+
+  document.getElementById('og-add').addEventListener('click', async () => {
+    const name = document.getElementById('og-name').value.trim()
+    if (!name) { toast('Enter an organization name.'); return }
+    if (await addOrganization(name)) {
+      toast('Organization added ✓')
+      organizations = await loadOrganizations()
+      renderOrganizations(); renderProjects()
+    }
+  })
+  document.querySelectorAll('#admin-orgs button[data-org-del]').forEach(b => {
+    b.addEventListener('click', async () => {
+      if (!confirm(`Delete organization "${b.dataset.name}"? This permanently removes its customers, projects and all logged hours for them, and un-assigns its users. This cannot be undone.`)) return
+      if (await deleteOrganization(b.dataset.orgDel)) {
+        toast('Organization deleted')
+        ;[organizations, customers, allProjects] = await Promise.all([loadOrganizations(), loadCustomers(), loadAllProjects()])
+        renderOrganizations(); renderProjects()
+      }
+    })
+  })
 }
 
 // ── Activity log (its own page) ──
@@ -54,13 +96,16 @@ async function refreshProfiles() {
 // ── Users ──
 function renderUsers() {
   const roleOpts = (sel) => ROLES.map(r => `<option${r === sel ? ' selected' : ''}>${r}</option>`).join('')
+  const orgOpts = (sel) => `<option value="">— none —</option>` +
+    organizations.map(o => `<option value="${o.id}"${o.id === sel ? ' selected' : ''}>${esc(o.name)}</option>`).join('')
 
   const rows = profiles.length ? profiles.map(p => `
     <tr>
       <td>${esc(p.email)}</td>
       <td>${esc(p.full_name || '')}</td>
+      <td><select class="org-select" data-id="${p.id}">${orgOpts(p.organization_id)}</select></td>
       <td><select class="role-select" data-id="${p.id}">${roleOpts(p.role)}</select></td>
-    </tr>`).join('') : '<tr><td colspan="3" class="ad-empty">No users yet.</td></tr>'
+    </tr>`).join('') : '<tr><td colspan="4" class="ad-empty">No users yet.</td></tr>'
 
   document.getElementById('admin-users').innerHTML = `
     <div class="admin-form">
@@ -70,7 +115,7 @@ function renderUsers() {
       <button class="btn btn-primary btn-sm" id="us-add">Add user</button>
     </div>
     <table class="admin-table">
-      <thead><tr><th>Email</th><th>Name</th><th>Role</th></tr></thead>
+      <thead><tr><th>Email</th><th>Name</th><th>Organization</th><th>Role</th></tr></thead>
       <tbody>${rows}</tbody>
     </table>`
 
@@ -89,6 +134,12 @@ function renderUsers() {
   document.querySelectorAll('#admin-users .role-select').forEach(sel => {
     sel.addEventListener('change', async () => {
       if (await updateProfileRole(sel.dataset.id, sel.value)) { toast('Role updated ✓'); refreshProfiles() }
+    })
+  })
+
+  document.querySelectorAll('#admin-users .org-select').forEach(sel => {
+    sel.addEventListener('change', async () => {
+      if (await updateProfileOrg(sel.dataset.id, sel.value)) { toast('Organization updated ✓'); refreshProfiles() }
     })
   })
 }
@@ -138,10 +189,56 @@ async function renderApprovers() {
   })
 }
 
-// ── Projects & customers ──
+// ── Customers ──
+async function renderCustomers() {
+  const orgOpts = organizations.map(o => `<option value="${o.id}">${esc(o.name)}</option>`).join('')
+
+  const rows = customers.length ? customers.map(c => `
+    <tr>
+      <td>${esc(c.name)}</td>
+      <td>${esc(c.organizations?.name || '— unassigned —')}</td>
+      <td class="ad-right"><button class="btn btn-sm btn-danger" data-cust-del="${c.id}" data-name="${esc(c.name)}">Delete</button></td>
+    </tr>`).join('') : '<tr><td colspan="3" class="ad-empty">No customers yet.</td></tr>'
+
+  document.getElementById('admin-customers').innerHTML = `
+    <div class="admin-form">
+      <div class="af-field"><label>Organization</label><select id="cu-org">${orgOpts || '<option value="">Add an organization first</option>'}</select></div>
+      <div class="af-field af-grow"><label>Customer name</label><input id="cu-name" placeholder="e.g. WSP"></div>
+      <button class="btn btn-primary btn-sm" id="cu-add">Add customer</button>
+    </div>
+    <table class="admin-table">
+      <thead><tr><th>Customer</th><th>Organization</th><th></th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`
+
+  document.getElementById('cu-add').addEventListener('click', async () => {
+    const org = document.getElementById('cu-org').value
+    const name = document.getElementById('cu-name').value.trim()
+    if (!name) { toast('Enter a customer name.'); return }
+    if (await addCustomer(name, org)) {
+      toast('Customer added ✓')
+      customers = await loadCustomers()
+      renderProjects(); renderApprovers()   // renderProjects also re-renders Customers
+    }
+  })
+  document.querySelectorAll('#admin-customers button[data-cust-del]').forEach(b => {
+    b.addEventListener('click', async () => {
+      if (!confirm(`Delete customer "${b.dataset.name}"? This permanently removes its projects and all logged hours for them. This cannot be undone.`)) return
+      if (await deleteCustomer(b.dataset.custDel)) {
+        toast('Customer deleted')
+        ;[customers, allProjects] = await Promise.all([loadCustomers(), loadAllProjects()])
+        renderProjects(); renderApprovers()   // renderProjects also re-renders Customers
+      }
+    })
+  })
+}
+
+// ── Projects ──
 async function renderProjects() {
+  await renderCustomers()
   const projects = await loadAllProjects()
-  const custOpts = customers.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join('')
+  const custOpts = customers.map(c =>
+    `<option value="${c.id}">${esc(c.organizations?.name ? c.organizations.name + ' · ' : '')}${esc(c.name)}</option>`).join('')
 
   const rows = projects.length ? projects.map(p => `
     <tr class="${p.active ? '' : 'ad-inactive'}">
@@ -149,19 +246,18 @@ async function renderProjects() {
       <td>${esc(p.code)}</td>
       <td>${esc(p.description || '')}</td>
       <td>${p.active ? '<span class="status-badge submitted">Active</span>' : '<span class="status-badge">Inactive</span>'}</td>
-      <td class="ad-right"><button class="btn btn-sm" data-toggle="${p.id}" data-active="${p.active}">${p.active ? 'Deactivate' : 'Activate'}</button></td>
+      <td class="ad-right">
+        <button class="btn btn-sm" data-toggle="${p.id}" data-active="${p.active}">${p.active ? 'Deactivate' : 'Activate'}</button>
+        <button class="btn btn-sm btn-danger" data-proj-del="${p.id}" data-name="${esc(p.code)}">Delete</button>
+      </td>
     </tr>`).join('') : '<tr><td colspan="5" class="ad-empty">No projects yet.</td></tr>'
 
   document.getElementById('admin-projects').innerHTML = `
     <div class="admin-form">
-      <div class="af-field"><label>Customer</label><select id="pr-cust">${custOpts}</select></div>
+      <div class="af-field"><label>Customer</label><select id="pr-cust">${custOpts || '<option value="">Add a customer first</option>'}</select></div>
       <div class="af-field af-grow"><label>Project code</label><input id="pr-code" placeholder="IDGC1000567 - …"></div>
       <div class="af-field"><label>Description</label><input id="pr-desc" placeholder="optional"></div>
       <button class="btn btn-primary btn-sm" id="pr-add">Add project</button>
-    </div>
-    <div class="admin-form">
-      <div class="af-field af-grow"><label>New customer</label><input id="cu-name" placeholder="e.g. Acme Corp"></div>
-      <button class="btn btn-sm" id="cu-add">Add customer</button>
     </div>
     <table class="admin-table">
       <thead><tr><th>Customer</th><th>Project Code</th><th>Description</th><th>Status</th><th></th></tr></thead>
@@ -179,15 +275,20 @@ async function renderProjects() {
       renderProjects(); renderApprovers()
     }
   })
-  document.getElementById('cu-add').addEventListener('click', async () => {
-    const name = document.getElementById('cu-name').value.trim()
-    if (!name) { toast('Enter a customer name.'); return }
-    if (await addCustomer(name)) { toast('Customer added ✓'); customers = await loadCustomers(); renderProjects(); renderApprovers() }
-  })
   document.querySelectorAll('#admin-projects button[data-toggle]').forEach(b => {
     b.addEventListener('click', async () => {
       const active = b.dataset.active === 'true'
       if (await setProjectActive(b.dataset.toggle, !active)) renderProjects()
+    })
+  })
+  document.querySelectorAll('#admin-projects button[data-proj-del]').forEach(b => {
+    b.addEventListener('click', async () => {
+      if (!confirm(`Delete project "${b.dataset.name}"? This permanently removes all logged hours and approvals for it. This cannot be undone.`)) return
+      if (await deleteProject(b.dataset.projDel)) {
+        toast('Project deleted')
+        allProjects = await loadAllProjects()
+        renderProjects(); renderApprovers()
+      }
     })
   })
 }

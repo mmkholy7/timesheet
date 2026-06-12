@@ -1,5 +1,5 @@
 import Chart from 'chart.js/auto'
-import { allSheets } from './data.js'
+import { allSheets, myApprovals } from './data.js'
 import { weekKey, fmtShort, goToWeek } from './timesheet.js'
 
 // Accent ramp followed by a neutral grey ramp (reads well on the dark theme)
@@ -136,10 +136,13 @@ function renderRecentWeeks(byWeek) {
   const recent = [...byWeek].reverse().slice(0, 8)   // most recent first
   const max = Math.max(...recent.map(w => w.hrs), 1)
   el('recent-weeks').innerHTML = recent.map(w => {
+    const appr = myApprovals[w.wk]
     const status = allSheets[w.wk].status
-    const badge = status === 'Submitted'
-      ? '<span class="status-badge submitted">Submitted</span>'
-      : '<span class="status-badge">Draft</span>'
+    let badge
+    if (appr && appr.allApproved) badge = '<span class="status-badge approved">Approved</span>'
+    else if (appr && appr.rejected && appr.rejected.length) badge = '<span class="status-badge rejected">Rejected</span>'
+    else if (status === 'Submitted') badge = '<span class="status-badge submitted">Submitted</span>'
+    else badge = '<span class="status-badge">Draft</span>'
     const pct = Math.round((w.hrs / max) * 100)
     return `<tr>
       <td class="rt-week">${weekLabel(w.wk)}</td>

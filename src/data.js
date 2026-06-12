@@ -149,6 +149,7 @@ export function scheduleSave(wk) {
 
 export function clearSheets() {
   allSheets = {}
+  myApprovals = {}
   currentUserId = null
   profile = null
 }
@@ -188,6 +189,48 @@ export async function createApprovalsForSheet(wk) {
 // for. Used to scope the approval queue/bell to only what's assigned to them —
 // RLS also lets admins read every approval and lets a manager read their own
 // submissions, neither of which belong in a personal approval queue.
+// The current user's approval state per week (keyed by week_start). Drives the
+// reject banner, the "approved → locked" rule, and the green dashboard badge.
+//   myApprovals[wk] = { approved, allApproved, pending, rejected: [{project, comment}] }
+export let myApprovals = {}
+
+export async function loadMyApprovals() {
+  const { data, error } = await sb
+    .from('approvals')
+    .select('status, comment, projects(code), timesheets!inner(week_start, user_id)')
+    .eq('timesheets.user_id', currentUserId)
+  if (error) { myApprovals = {}; return myApprovals }
+  const byWeek = {}
+  ;(data || []).forEach(a => {
+    const wk = a.timesheets?.week_start
+    if (!wk) return
+    const e = byWeek[wk] || (byWeek[wk] = { statuses: [], rejected: [] })
+    e.statuses.push(a.status)
+    if (a.status === 'Rejected') e.rejected.push({ project: a.projects?.code || '', comment: a.comment || '' })
+  })
+  Object.values(byWeek).forEach(e => {
+    e.approved = e.statuses.some(s => s === 'Approved')          // any project approved
+    e.allApproved = e.statuses.length > 0 && e.statuses.every(s => s === 'Approved')
+    e.pending = e.statuses.some(s => s === 'Pending')
+  })
+  myApprovals = byWeek
+  return byWeek
+}
+
+// Recall: pull a submitted week back to Draft so the owner can edit/resubmit.
+// Removes the routed approval rows (any status) — resubmitting recreates fresh
+// Pending ones. RLS lets the owner delete only their own sheet's approvals.
+export async function recallSheet(wk) {
+  const sheet = allSheets[wk]
+  if (!sheet || !sheet.id) return false
+  const { error: delErr } = await sb.from('approvals').delete().eq('timesheet_id', sheet.id)
+  if (delErr) { toast('Recall failed: ' + delErr.message); return false }
+  sheet.status = 'Draft'
+  await saveSheet(wk)
+  logAction('timesheet: recalled', 'timesheet', wk)
+  return true
+}
+
 export async function loadMyApproverKeys() {
   const { data, error } = await sb
     .from('approver_links')
@@ -201,7 +244,7 @@ export async function loadMyApproverKeys() {
 export async function loadApprovals() {
   const { data, error } = await sb
     .from('approvals')
-    .select('id, status, project_id, decided_at, projects(code, customers(name)), timesheets(id, week_start, user_id, profiles(email, full_name))')
+    .select('id, status, project_id, decided_at, comment, projects(code, customers(name)), timesheets(id, week_start, user_id, profiles(email, full_name))')
     .order('status', { ascending: true })
   if (error) { toast('Error loading approvals: ' + error.message); return [] }
   return data || []
@@ -245,9 +288,17 @@ export async function loadAuditLog(limit = 200) {
 }
 
 export async function loadProfiles() {
-  const { data, error } = await sb.from('profiles').select('id, email, full_name, role').order('email')
+  const { data, error } = await sb.from('profiles').select('id, email, full_name, role, organization_id').order('email')
   if (error) { toast('Error loading users: ' + error.message); return [] }
   return data || []
+}
+
+// Admin: assign a user to an organization (RLS lets admins update any profile).
+export async function updateProfileOrg(id, organization_id) {
+  const { error } = await sb.from('profiles').update({ organization_id: organization_id || null }).eq('id', id)
+  if (error) { toast('Organization update failed: ' + error.message); return false }
+  logAction('user: organization changed', 'user', id, { to: organization_id || null })
+  return true
 }
 
 // Admin: create a user directly in the DB (via the admin-create-user function)
@@ -303,16 +354,66 @@ export async function updateProfileRole(id, role) {
   return true
 }
 
+// ── Organizations (tenants) ──
+
+export async function loadOrganizations() {
+  const { data, error } = await sb
+    .from('organizations')
+    .select('id, name, slug, logo_url')
+    .order('name')
+  if (error) { toast('Error loading organizations: ' + error.message); return [] }
+  return data || []
+}
+
+// Build a url-safe slug from a name, e.g. "Acme Corp" → "acme-corp".
+function slugify(s) {
+  return (s || '').toLowerCase().trim()
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
+}
+
+export async function addOrganization(name) {
+  const slug = slugify(name)
+  if (!slug) { toast('Enter an organization name.'); return false }
+  const { error } = await sb.from('organizations').insert({ name: name.trim(), slug })
+  if (error) {
+    toast(error.code === '23505' ? 'An organization with that name already exists.' : 'Add organization failed: ' + error.message)
+    return false
+  }
+  logAction('organization: created', 'organization', slug)
+  return true
+}
+
+export async function deleteOrganization(id) {
+  const { error } = await sb.from('organizations').delete().eq('id', id)
+  if (error) { toast('Delete failed: ' + error.message); return false }
+  logAction('organization: deleted', 'organization', id)
+  return true
+}
+
+// ── Customers ──
+
 export async function loadCustomers() {
-  const { data, error } = await sb.from('customers').select('id, name, code').order('name')
+  const { data, error } = await sb
+    .from('customers')
+    .select('id, name, code, organization_id, organizations(name)')
+    .order('name')
   if (error) { toast('Error loading customers: ' + error.message); return [] }
   return data || []
 }
 
-export async function addCustomer(name, code) {
-  const { error } = await sb.from('customers').insert({ name, code: code || null })
+export async function addCustomer(name, organization_id, code) {
+  if (!organization_id) { toast('Pick an organization for this customer.'); return false }
+  const { error } = await sb.from('customers').insert({ name, code: code || null, organization_id })
   if (error) { toast('Add customer failed: ' + error.message); return false }
-  logAction('customer: created', 'customer', name)
+  logAction('customer: created', 'customer', name, { organization_id })
+  return true
+}
+
+export async function deleteCustomer(id) {
+  const { error } = await sb.from('customers').delete().eq('id', id)
+  if (error) { toast('Delete failed: ' + error.message); return false }
+  await loadProjects()
+  logAction('customer: deleted', 'customer', id)
   return true
 }
 
@@ -329,6 +430,16 @@ export async function setProjectActive(id, active) {
   if (error) { toast('Update failed: ' + error.message); return false }
   await loadProjects()
   logAction(active ? 'project: activated' : 'project: deactivated', 'project', id)
+  return true
+}
+
+// Hard delete — cascades to this project's timesheet entries, approvals and
+// approver links (see migration 0009). Permanent.
+export async function deleteProject(id) {
+  const { error } = await sb.from('projects').delete().eq('id', id)
+  if (error) { toast('Delete failed: ' + error.message); return false }
+  await loadProjects()
+  logAction('project: deleted', 'project', id)
   return true
 }
 

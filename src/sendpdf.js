@@ -57,6 +57,8 @@ function updateSummary() {
   document.getElementById('sp-summary').textContent =
     n ? `${n} week${n > 1 ? 's' : ''} · ${total.toFixed(1)} h selected` : 'No weeks selected'
   document.getElementById('sp-send').disabled = n === 0
+  const dl = document.getElementById('sp-download')
+  if (dl) dl.disabled = n === 0
 }
 
 // Quick selectors: 'week' = current week, 'month' = all weeks in current month, 'clear'.
@@ -89,27 +91,42 @@ function periodLabel(chosen) {
   return `${chosen.length} weeks`
 }
 
-export async function sendPdfNow() {
-  const to = document.getElementById('send-to').value.trim()
-  if (!to) { toast('Enter a recipient email.'); return }
+// Shared: turn the current selection into a built range PDF. Returns null (and
+// toasts) if nothing valid is selected.
+function buildSelectedPdf() {
   const chosen = [...selected].sort()
-  if (!chosen.length) { toast('Select at least one week.'); return }
+  if (!chosen.length) { toast('Select at least one week.'); return null }
 
   const weeks = chosen.map(wk => ({
     weekStart: wk,
     rows: allSheets[wk].rows.filter(r => r.hours.reduce((a, h) => a + (+h || 0), 0) > 0)
   })).filter(w => w.rows.length)
-  if (!weeks.length) { toast('Selected weeks have no hours.'); return }
+  if (!weeks.length) { toast('Selected weeks have no hours.'); return null }
 
   const label = periodLabel(chosen)
   const fileTag = chosen.length === 1 ? chosen[0] : `${chosen[0]}_to_${chosen[chosen.length - 1]}`
-  const { base64, filename } = buildRangePDF(
-    { employee: profile?.email, periodLabel: label, fileTag }, weeks
-  )
+  const built = buildRangePDF({ employee: profile?.email, periodLabel: label, fileTag }, weeks)
+  return { ...built, label }
+}
+
+export async function sendPdfNow() {
+  const to = document.getElementById('send-to').value.trim()
+  if (!to) { toast('Enter a recipient email.'); return }
+  const built = buildSelectedPdf()
+  if (!built) return
 
   const btn = document.getElementById('sp-send')
   btn.disabled = true; btn.textContent = 'Sending…'
-  const ok = await emailTimesheetPDF({ to, periodLabel: label, base64, filename })
+  const ok = await emailTimesheetPDF({ to, periodLabel: built.label, base64: built.base64, filename: built.filename })
   btn.disabled = false; btn.textContent = 'Send PDF'
   if (ok) { toast(`Sent to ${to} ✓`); closeSendPdf() }
+}
+
+// Download the selected week(s)/month locally instead of emailing.
+export function downloadPdfNow() {
+  const built = buildSelectedPdf()
+  if (!built) return
+  built.doc.save(built.filename)
+  toast('Downloaded ✓')
+  closeSendPdf()
 }

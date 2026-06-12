@@ -35,7 +35,7 @@ Deno.serve(async (req) => {
     })
     const { data: { user } } = await userClient.auth.getUser()
     if (!user) return json({ error: 'not authenticated' }, 401)
-    const { data: me } = await admin.from('profiles').select('role').eq('id', user.id).single()
+    const { data: me } = await admin.from('profiles').select('role, organization_id').eq('id', user.id).single()
     if (me?.role !== 'admin') return json({ error: 'admin only' }, 403)
 
     // Already a user? Just update their profile (don't recreate).
@@ -65,6 +65,9 @@ Deno.serve(async (req) => {
 
     const patch: Record<string, unknown> = { role }
     if (full_name) patch.full_name = full_name
+    // New users inherit the creating admin's organization so they can see that
+    // org's projects immediately. Existing users keep whatever org they have.
+    if (created && me?.organization_id) patch.organization_id = me.organization_id
     const { error: uErr } = await admin.from('profiles').update(patch).eq('id', userId)
     if (uErr) return json({ error: 'profile update failed: ' + uErr.message }, 400)
 

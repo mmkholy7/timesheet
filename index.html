@@ -139,6 +139,7 @@
             <div class="user-avatar" id="user-avatar">?</div>
             <span class="user-email" id="topbar-user"></span>
           </div>
+          <button class="btn btn-sm btn-ghost" onclick="openChangePassword()">Change password</button>
           <button class="btn btn-sm btn-ghost" onclick="signOut()">Sign out</button>
         </div>
       </aside>
@@ -161,8 +162,9 @@
             <span class="sync-indicator" id="sync-status"></span>
             <button class="btn btn-sm btn-ghost" onclick="exportExcel()">⬇ Export Excel</button>
             <button class="btn btn-sm btn-ghost" onclick="openSendPdf()">✉ Email PDF</button>
-            <button class="btn btn-sm" onclick="submitSheet()">✓ Submit</button>
-            <button class="btn btn-primary btn-sm" onclick="submitAndSend()">✉ Submit &amp; Send for Approval</button>
+            <button class="btn btn-sm" id="recall-btn" style="display:none" onclick="recallSheet()">↩ Recall</button>
+            <button class="btn btn-sm" id="submit-btn" onclick="submitSheet()">✓ Submit</button>
+            <button class="btn btn-primary btn-sm" id="submitsend-btn" onclick="submitAndSend()">✉ Submit &amp; Send for Approval</button>
           </div>
         </header>
 
@@ -216,8 +218,18 @@
           <div id="admin-approvers"></div>
         </div>
         <div class="admin-section">
-          <h3 class="admin-h">Projects &amp; Customers</h3>
-          <p class="admin-desc">Add or deactivate the project codes employees pick from.</p>
+          <h3 class="admin-h">Organizations</h3>
+          <p class="admin-desc">Tenants of the app. Each customer belongs to one organization; deleting an org removes its customers and projects (users are kept but un-assigned).</p>
+          <div id="admin-orgs"></div>
+        </div>
+        <div class="admin-section">
+          <h3 class="admin-h">Customers</h3>
+          <p class="admin-desc">Clients within an organization (e.g. WSP). Projects are grouped under a customer. Deleting a customer removes its projects and their logged hours.</p>
+          <div id="admin-customers"></div>
+        </div>
+        <div class="admin-section">
+          <h3 class="admin-h">Projects</h3>
+          <p class="admin-desc">The project codes employees pick from. Deactivate to hide from new entries, or delete to remove permanently (along with its logged hours).</p>
           <div id="admin-projects"></div>
         </div>
       </div>
@@ -233,6 +245,8 @@
 
       <!-- TIMESHEET -->
       <div id="timesheet-view">
+      <div id="lock-banner" class="reject-banner lock-banner" style="display:none"></div>
+      <div id="reject-banner" class="reject-banner" style="display:none"></div>
       <div class="week-nav">
         <div>
           <div class="week-label" id="week-label"></div>
@@ -260,8 +274,9 @@
           </table>
         </div>
         <div class="add-row-bar">
-          <button class="btn btn-sm" onclick="addRow()">+ Add Row</button>
+          <button class="btn btn-sm" id="addrow-btn" onclick="addRow()">+ Add Row</button>
           <button class="btn btn-sm" id="weekend-btn" onclick="toggleWeekend()">+ Show weekend</button>
+          <button class="btn btn-sm" id="addproj-btn" onclick="openAddProject()">+ Add project code</button>
         </div>
       </div>
 
@@ -283,7 +298,7 @@
   <div id="sendpdf-modal" class="modal-overlay">
     <div class="modal">
       <div class="modal-head">
-        <h3>Email timesheet PDF</h3>
+        <h3>Download or email timesheet PDF</h3>
         <button class="modal-x" onclick="closeSendPdf()" aria-label="Close">✕</button>
       </div>
       <div class="modal-body">
@@ -303,7 +318,67 @@
         <span id="sp-summary" class="sp-summary">No weeks selected</span>
         <div>
           <button class="btn btn-sm btn-ghost" onclick="closeSendPdf()">Cancel</button>
+          <button class="btn btn-sm" id="sp-download" onclick="downloadPdfNow()" disabled>⬇ Download</button>
           <button class="btn btn-primary btn-sm" id="sp-send" onclick="sendPdfNow()" disabled>Send PDF</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHANGE PASSWORD MODAL -->
+  <div id="changepw-modal" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-head">
+        <h3>Change password</h3>
+        <button class="modal-x" onclick="closeChangePassword()" aria-label="Close">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="af-field af-grow">
+          <label>New password</label>
+          <input id="cp-password" type="password" autocomplete="new-password" placeholder="••••••••">
+        </div>
+        <div class="af-field af-grow">
+          <label>Confirm new password</label>
+          <input id="cp-confirm" type="password" autocomplete="new-password" placeholder="••••••••">
+        </div>
+        <div class="auth-err" id="cp-err" style="display:none"></div>
+      </div>
+      <div class="modal-foot">
+        <span></span>
+        <div>
+          <button class="btn btn-sm btn-ghost" onclick="closeChangePassword()">Cancel</button>
+          <button class="btn btn-primary btn-sm" id="cp-btn" onclick="changePassword()">Update password</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ADD PROJECT CODE MODAL -->
+  <div id="addproj-modal" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-head">
+        <h3>Add project code</h3>
+        <button class="modal-x" onclick="closeAddProject()" aria-label="Close">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="af-field af-grow">
+          <label>Customer</label>
+          <select id="np-cust"></select>
+        </div>
+        <div class="af-field af-grow">
+          <label>Project code</label>
+          <input id="np-code" placeholder="IDGC1000567 - …">
+        </div>
+        <div class="af-field af-grow">
+          <label>Description</label>
+          <input id="np-desc" placeholder="optional">
+        </div>
+      </div>
+      <div class="modal-foot">
+        <span></span>
+        <div>
+          <button class="btn btn-sm btn-ghost" onclick="closeAddProject()">Cancel</button>
+          <button class="btn btn-primary btn-sm" id="np-save" onclick="saveNewProject()">Add project code</button>
         </div>
       </div>
     </div>

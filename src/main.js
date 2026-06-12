@@ -1,9 +1,9 @@
 import './style.css'
-import { initAuth, handleAuth, signOut, toggleAuthMode, requestPasswordReset, updatePassword, signInWithGoogle, signInWithMicrosoft, requestEmailCode, verifyEmailCode } from './auth.js'
+import { initAuth, handleAuth, signOut, toggleAuthMode, requestPasswordReset, updatePassword, signInWithGoogle, signInWithMicrosoft, requestEmailCode, verifyEmailCode, changePassword, openChangePassword, closeChangePassword } from './auth.js'
 import { loadAllSheets, loadProfile, loadProjects, setUser, clearSheets, logAction } from './data.js'
-import { render, addRow, submitSheet, submitAndSend, prevWeek, nextWeek, goToday, toggleWeekend } from './timesheet.js'
+import { render, addRow, submitSheet, submitAndSend, prevWeek, nextWeek, goToday, toggleWeekend, recallSheet, openAddProject, closeAddProject, saveNewProject, refreshApprovals } from './timesheet.js'
 import { exportExcel } from './export.js'
-import { openSendPdf, closeSendPdf, sendPdfQuick, sendPdfNow } from './sendpdf.js'
+import { openSendPdf, closeSendPdf, sendPdfQuick, sendPdfNow, downloadPdfNow } from './sendpdf.js'
 import { renderDashboard } from './dashboard.js'
 import { renderApprovals } from './approvals.js'
 import { renderAdmin, renderLogs } from './admin.js'
@@ -70,9 +70,16 @@ window.signOut = async () => {
   await logAction('auth: signed out', 'session')   // log while the session is still valid
   await signOut()
 }
+window.changePassword = changePassword
+window.openChangePassword = openChangePassword
+window.closeChangePassword = closeChangePassword
 window.addRow = addRow
 window.submitSheet = submitSheet
 window.submitAndSend = submitAndSend
+window.recallSheet = recallSheet
+window.openAddProject = openAddProject
+window.closeAddProject = closeAddProject
+window.saveNewProject = saveNewProject
 window.prevWeek = prevWeek
 window.nextWeek = nextWeek
 window.goToday = goToday
@@ -83,6 +90,7 @@ window.openSendPdf = openSendPdf
 window.closeSendPdf = closeSendPdf
 window.sendPdfQuick = sendPdfQuick
 window.sendPdfNow = sendPdfNow
+window.downloadPdfNow = downloadPdfNow
 
 // ── Boot ──
 showLoading()
@@ -98,6 +106,7 @@ initAuth({
     applyRoleNav(prof?.role)
     hideLoading()
     render()
+    await refreshApprovals()   // load approvals (lock + reject banners + green badges) before first paint
     setView('dashboard')
     // Log the sign-in once per browser session (a plain reload reuses the
     // session, so it shouldn't record a new login).
