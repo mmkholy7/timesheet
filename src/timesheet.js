@@ -1,7 +1,8 @@
-import { allSheets, getLocalSheet, newRow, scheduleSave, saveSheet, projects, createApprovalsForSheet, logAction, recallSheet as recallSheetDb, loadCustomers, addProject, loadMyApprovals, myApprovals } from './data.js'
+import { allSheets, getLocalSheet, newRow, scheduleSave, saveSheet, projects, createApprovalsForSheet, logAction, recallSheet as recallSheetDb, loadCustomers, addProject, loadMyApprovals, myApprovals, loadApprovedDetail, profile, loadMyRoutedProjectIds } from './data.js'
 import { toast } from './ui.js'
 import { sb } from './supabase.js'
 import { refreshNotifications } from './notify.js'
+import { buildApprovedPDF } from './pdf.js'
 
 const RATES = ['Regular - Hourly', 'Overtime - Hourly', 'Double Time', 'Stat Holiday']
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
@@ -85,6 +86,9 @@ export function render() {
   const submitSendBtn = document.getElementById('submitsend-btn')
   if (submitBtn) submitBtn.style.display = locked ? 'none' : ''
   if (submitSendBtn) submitSendBtn.style.display = locked ? 'none' : ''
+  // Approved week → offer the invoice-ready approved PDF.
+  const dlApprovedBtn = document.getElementById('download-approved-btn')
+  if (dlApprovedBtn) dlApprovedBtn.style.display = locked ? '' : 'none'
 
   // Lock notice for an approved week.
   const lockBanner = document.getElementById('lock-banner')
@@ -249,6 +253,22 @@ async function markSubmitted(wk) {
   if (!sheet.rows.some(r => r.project_id && r.hours.some(h => +h > 0))) {
     toast('Add hours to a project before submitting.'); return false
   }
+  // Warn about projects with hours that have no approver assigned — their
+  // approval would route to nobody and silently never appear in any queue.
+  const routed = await loadMyRoutedProjectIds()
+  const unrouted = [...new Map(
+    sheet.rows
+      .filter(r => r.project_id && r.hours.some(h => +h > 0) && !routed.has(r.project_id))
+      .map(r => [r.project_id, r.proj || r.project_id])
+  ).values()]
+  if (unrouted.length) {
+    const ok = confirm(
+      `No approver is assigned for:\n\n• ${unrouted.join('\n• ')}\n\n` +
+      `Those hours won't reach anyone for approval until an admin assigns an approver ` +
+      `(Admin → Approvers). Submit anyway?`
+    )
+    if (!ok) return false
+  }
   sheet.status = 'Submitted'
   await saveSheet(wk)
   await createApprovalsForSheet(wk)           // route to approver(s) per project
@@ -299,6 +319,65 @@ export async function recallSheet() {
     refreshApprovals()       // approval rows are gone now — clear lock + banners
     refreshNotifications()   // update the approver's pending-approval bell
   }
+}
+
+// Best-effort public IP (IPv6 when the connection is v6). Browsers can't read
+// their own IP, so we ask an echo service; failure just yields ''.
+async function clientIp() {
+  try {
+    const ctrl = new AbortController()
+    const t = setTimeout(() => ctrl.abort(), 4000)
+    const r = await fetch('https://api64.ipify.org?format=json', { signal: ctrl.signal })
+    clearTimeout(t)
+    const j = await r.json()
+    return j.ip || ''
+  } catch { return '' }
+}
+
+// Download the approved week as an invoice-ready PDF, stamped with who approved
+// each project and when, plus a provenance footer (downloader, time, IP). Only
+// the approved projects are included.
+export async function downloadApproved() {
+  const wk = weekKey(currentWeekStart)
+  const sheet = getLocalSheet(wk)
+  if (!sheet.id) { toast('Nothing to download.'); return }
+
+  const btn = document.getElementById('download-approved-btn')
+  if (btn) { btn.disabled = true; btn.textContent = 'Preparing…' }
+  const details = await loadApprovedDetail(sheet.id)
+  if (!details.length) {
+    if (btn) { btn.disabled = false; btn.textContent = '⬇ Approved PDF' }
+    toast('No approved projects on this week yet.'); return
+  }
+
+  const approvedIds = new Set(details.map(d => d.project_id))
+  const rows = sheet.rows
+    .filter(r => approvedIds.has(r.project_id) && r.hours.some(h => +h > 0))
+    .map(r => ({ rate: r.rate, proj: r.proj, hours: r.hours }))
+  if (!rows.length) {
+    if (btn) { btn.disabled = false; btn.textContent = '⬇ Approved PDF' }
+    toast('Approved projects have no hours.'); return
+  }
+
+  const ip = await clientIp()
+  if (btn) { btn.disabled = false; btn.textContent = '⬇ Approved PDF' }
+
+  const days = getWeekDays(currentWeekStart)
+  const { doc, filename } = buildApprovedPDF(
+    {
+      employee: profile?.email,
+      weekStart: fmtDate(currentWeekStart),
+      weekEnd: fmtDate(days[6]),
+      downloadedBy: profile?.email,
+      downloadedAt: new Date().toISOString(),
+      ip
+    },
+    rows,
+    details.map(d => ({ code: d.code, approver: d.approver, decided_at: d.decided_at }))
+  )
+  doc.save(filename)
+  logAction('timesheet: downloaded approved', 'timesheet', wk, { ip })
+  toast('Approved timesheet downloaded ✓')
 }
 
 // ── Self-service: add a new project code from the timesheet ──

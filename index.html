@@ -162,6 +162,7 @@
             <span class="sync-indicator" id="sync-status"></span>
             <button class="btn btn-sm btn-ghost" onclick="exportExcel()">⬇ Export Excel</button>
             <button class="btn btn-sm btn-ghost" onclick="openSendPdf()">✉ Email PDF</button>
+            <button class="btn btn-sm" id="download-approved-btn" style="display:none" onclick="downloadApproved()">⬇ Approved PDF</button>
             <button class="btn btn-sm" id="recall-btn" style="display:none" onclick="recallSheet()">↩ Recall</button>
             <button class="btn btn-sm" id="submit-btn" onclick="submitSheet()">✓ Submit</button>
             <button class="btn btn-primary btn-sm" id="submitsend-btn" onclick="submitAndSend()">✉ Submit &amp; Send for Approval</button>
@@ -180,9 +181,13 @@
           <div class="stat-card"><div class="stat-label">Weeks Tracked</div><div class="stat-value" id="stat-weeks">0</div></div>
         </div>
         <div class="chart-grid">
-          <div class="chart-card">
+          <div class="chart-card wide">
             <div class="chart-title">Hours by Week</div>
             <div class="chart-box"><canvas id="chart-week"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-title">Hours by Status</div>
+            <div class="chart-box"><canvas id="chart-status"></canvas></div>
           </div>
           <div class="chart-card">
             <div class="chart-title">Hours by Project</div>

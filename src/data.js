@@ -197,16 +197,21 @@ export let myApprovals = {}
 export async function loadMyApprovals() {
   const { data, error } = await sb
     .from('approvals')
-    .select('status, comment, projects(code), timesheets!inner(week_start, user_id)')
+    .select('status, comment, project_id, projects(code), timesheets!inner(week_start, user_id)')
     .eq('timesheets.user_id', currentUserId)
   if (error) { myApprovals = {}; return myApprovals }
   const byWeek = {}
   ;(data || []).forEach(a => {
     const wk = a.timesheets?.week_start
     if (!wk) return
-    const e = byWeek[wk] || (byWeek[wk] = { statuses: [], rejected: [] })
+    const e = byWeek[wk] || (byWeek[wk] = {
+      statuses: [], rejected: [],
+      approvedIds: new Set(), rejectedIds: new Set(), pendingIds: new Set()
+    })
     e.statuses.push(a.status)
-    if (a.status === 'Rejected') e.rejected.push({ project: a.projects?.code || '', comment: a.comment || '' })
+    if (a.status === 'Approved') e.approvedIds.add(a.project_id)
+    else if (a.status === 'Rejected') { e.rejectedIds.add(a.project_id); e.rejected.push({ project: a.projects?.code || '', comment: a.comment || '' }) }
+    else if (a.status === 'Pending') e.pendingIds.add(a.project_id)
   })
   Object.values(byWeek).forEach(e => {
     e.approved = e.statuses.some(s => s === 'Approved')          // any project approved
@@ -215,6 +220,23 @@ export async function loadMyApprovals() {
   })
   myApprovals = byWeek
   return byWeek
+}
+
+// The approved projects on one of my timesheets, with who approved and when.
+// Drives the employee's "Download approved (for invoice)" PDF stamp.
+export async function loadApprovedDetail(timesheetId) {
+  const { data, error } = await sb
+    .from('approvals')
+    .select('project_id, decided_at, decided_by_email, projects(code)')
+    .eq('timesheet_id', timesheetId)
+    .eq('status', 'Approved')
+  if (error) { toast('Could not load approval details: ' + error.message); return [] }
+  return (data || []).map(a => ({
+    project_id: a.project_id,
+    code: a.projects?.code || '',
+    approver: a.decided_by_email || '',
+    decided_at: a.decided_at
+  }))
 }
 
 // Recall: pull a submitted week back to Draft so the owner can edit/resubmit.
@@ -238,6 +260,18 @@ export async function loadMyApproverKeys() {
     .eq('manager_id', currentUserId)
   if (error) return new Set()
   return new Set((data || []).map(l => `${l.employee_id}:${l.project_id}`))
+}
+
+// Project ids the CURRENT employee has an approver assigned for. Used to warn
+// at submit time about projects that would route to nobody. (RLS lets a user
+// read approver_links where they are the employee.)
+export async function loadMyRoutedProjectIds() {
+  const { data, error } = await sb
+    .from('approver_links')
+    .select('project_id')
+    .eq('employee_id', currentUserId)
+  if (error) return new Set()
+  return new Set((data || []).map(l => l.project_id))
 }
 
 // Manager view: pending approvals visible to the current user (RLS-scoped)
@@ -515,17 +549,23 @@ export async function assignApprover(employeeId, projectId, approverEmail) {
 }
 
 export async function decideApproval(approvalId, decision, comment = null) {
-  const { data, error } = await sb
-    .from('approvals')
-    .update({
-      status: decision,                 // 'Approved' | 'Rejected'
-      decided_by: currentUserId,
-      decided_at: new Date().toISOString(),
-      comment
-    })
-    .eq('id', approvalId)
-    .select('id, decided_at, project_id, timesheets(id, week_start, user_id)')
-    .single()
+  const base = {
+    status: decision,                   // 'Approved' | 'Rejected'
+    decided_by: currentUserId,
+    decided_at: new Date().toISOString(),
+    comment
+  }
+  const sel = 'id, decided_at, project_id, timesheets(id, week_start, user_id)'
+  // Prefer storing the approver's email (for the employee's invoice PDF). If the
+  // decided_by_email column isn't there yet (migration 0011 not applied), retry
+  // without it so approving still works.
+  let { data, error } = await sb.from('approvals')
+    .update({ ...base, decided_by_email: profile?.email })
+    .eq('id', approvalId).select(sel).single()
+  if (error && (error.code === 'PGRST204' || /decided_by_email/.test(error.message || ''))) {
+    ;({ data, error } = await sb.from('approvals')
+      .update(base).eq('id', approvalId).select(sel).single())
+  }
   if (error) { toast('Decision failed: ' + error.message); return null }
   return data
 }

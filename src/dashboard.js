@@ -9,8 +9,28 @@ const TICK = '#7b8494'
 
 let charts = []
 
+// Status colours: green = approved, amber = pending, red = rejected, grey = draft.
+const C_APPROVED = '#34d399', C_REJECTED = '#e0241b', C_PENDING = '#fbbf24', C_DRAFT = '#5a6373'
+
 function sumHours(rows) {
   return rows.reduce((a, r) => a + r.hours.reduce((b, h) => b + (+h || 0), 0), 0)
+}
+
+// Split one week's hours across approval statuses, by each row's project.
+function weekStatusHours(wk) {
+  const a = myApprovals[wk]
+  const sheet = allSheets[wk]
+  const out = { approved: 0, pending: 0, rejected: 0, draft: 0 }
+  sheet.rows.forEach(r => {
+    const h = r.hours.reduce((x, y) => x + (+y || 0), 0)
+    if (h <= 0) return
+    if (a && a.approvedIds.has(r.project_id)) out.approved += h
+    else if (a && a.rejectedIds.has(r.project_id)) out.rejected += h
+    else if (a && a.pendingIds.has(r.project_id)) out.pending += h
+    else if (sheet.status === 'Submitted') out.pending += h
+    else out.draft += h
+  })
+  return out
 }
 
 function destroyCharts() {
@@ -67,18 +87,25 @@ export function renderDashboard() {
 
   const baseOpts = { responsive: true, maintainAspectRatio: false }
 
-  // Bar: hours by week (last 10)
+  // Bar: hours by week (last 10), stacked by approval status so the approved
+  // portion of each week reads green.
   const recent = byWeek.slice(-10)
+  const rs = recent.map(w => weekStatusHours(w.wk))
   charts.push(new Chart(el('chart-week'), {
     type: 'bar',
     data: {
       labels: recent.map(w => fmtShort(new Date(w.wk))),
-      datasets: [{ data: recent.map(w => w.hrs), backgroundColor: '#e0241b', borderRadius: 6, maxBarThickness: 46 }]
+      datasets: [
+        { label: 'Approved', data: rs.map(s => s.approved), backgroundColor: C_APPROVED, stack: 's', maxBarThickness: 46 },
+        { label: 'Pending', data: rs.map(s => s.pending), backgroundColor: C_PENDING, stack: 's', maxBarThickness: 46 },
+        { label: 'Rejected', data: rs.map(s => s.rejected), backgroundColor: C_REJECTED, stack: 's', maxBarThickness: 46 },
+        { label: 'Draft', data: rs.map(s => s.draft), backgroundColor: C_DRAFT, stack: 's', maxBarThickness: 46 }
+      ]
     },
     options: {
       ...baseOpts,
       plugins: {
-        legend: { display: false },
+        legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 }, color: '#b3bac7' } },
         tooltip: { callbacks: { footer: () => 'Click to open this week' } }
       },
       // Click a bar → jump to that week's timesheet
@@ -90,8 +117,8 @@ export function renderDashboard() {
         evt.native.target.style.cursor = elements.length ? 'pointer' : 'default'
       },
       scales: {
-        y: { beginAtZero: true, grid: { color: GRID }, ticks: { color: TICK } },
-        x: { grid: { display: false }, ticks: { color: TICK } }
+        y: { stacked: true, beginAtZero: true, grid: { color: GRID }, ticks: { color: TICK } },
+        x: { stacked: true, grid: { display: false }, ticks: { color: TICK } }
       }
     }
   }))
@@ -118,6 +145,35 @@ export function renderDashboard() {
 
   charts.push(donut('chart-project', byProject))
   charts.push(donut('chart-rate', byRate))
+
+  // Hours by approval status — approved shows green.
+  const byStatus = { Approved: 0, Pending: 0, Rejected: 0, Draft: 0 }
+  weeks.forEach(wk => {
+    const s = weekStatusHours(wk)
+    byStatus.Approved += s.approved
+    byStatus.Pending += s.pending
+    byStatus.Rejected += s.rejected
+    byStatus.Draft += s.draft
+  })
+  const STATUS_COLOR = { Approved: C_APPROVED, Pending: C_PENDING, Rejected: C_REJECTED, Draft: C_DRAFT }
+  const statusEntries = Object.entries(byStatus).filter(([, v]) => v > 0)
+  if (statusEntries.length) {
+    charts.push(new Chart(el('chart-status'), {
+      type: 'doughnut',
+      data: {
+        labels: statusEntries.map(([k]) => k),
+        datasets: [{ data: statusEntries.map(([, v]) => v), backgroundColor: statusEntries.map(([k]) => STATUS_COLOR[k]), borderColor: '#11151e', borderWidth: 2 }]
+      },
+      options: {
+        ...baseOpts,
+        cutout: '62%',
+        plugins: {
+          legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 }, color: '#b3bac7' } },
+          tooltip: { callbacks: { label: c => ` ${statusEntries[c.dataIndex][0]}: ${c.parsed.toFixed(1)} h` } }
+        }
+      }
+    }))
+  }
 }
 
 function parseLocal(wk) {

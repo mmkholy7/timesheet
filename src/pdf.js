@@ -80,6 +80,81 @@ export function buildTimesheetPDF(meta, rows) {
   return { doc, base64, filename }
 }
 
+// Build an APPROVED single-week timesheet for the employee to attach to an
+// invoice. Like buildTimesheetPDF, but the footer lists each project's
+// approver + approval date (passed in, since they live on the approval rows).
+// meta: { employee, weekStart, weekEnd }
+// rows: [{ rate, proj, hours[7] }]   approvals: [{ code, approver, decided_at }]
+// Returns { doc, filename }
+export function buildApprovedPDF(meta, rows, approvals) {
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' })
+  const generatedAt = new Date()
+
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(18)
+  doc.text('Approved Timesheet', 40, 44)
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(110)
+  doc.text('For invoicing', 40, 62)
+
+  doc.setTextColor(30); doc.setFontSize(10)
+  const infoX = 40, infoY = 88, gap = 220
+  const line = (x, y, label, val) => {
+    doc.setTextColor(140); doc.text(label, x, y)
+    doc.setTextColor(30); doc.setFont('helvetica', 'bold'); doc.text(String(val || '—'), x, y + 14)
+    doc.setFont('helvetica', 'normal')
+  }
+  line(infoX, infoY, 'Employee', meta.employee)
+  line(infoX + gap, infoY, 'Week', `${meta.weekStart} – ${meta.weekEnd}`)
+  line(infoX + gap * 2, infoY, 'Total Hours', totalHours(rows).toFixed(2))
+
+  const head = [['Rate', 'Project Code', ...DAYS, 'Total']]
+  const body = rows.map(r => [
+    r.rate, r.proj,
+    ...r.hours.map(h => (+h || 0) === 0 ? '' : (+h).toString()),
+    totalRow(r).toFixed(2)
+  ])
+  const dayTotals = Array(7).fill(0)
+  rows.forEach(r => r.hours.forEach((h, i) => { dayTotals[i] += (+h || 0) }))
+  body.push(['', 'Daily Total', ...dayTotals.map(t => t.toFixed(2)), totalHours(rows).toFixed(2)])
+
+  autoTable(doc, {
+    head, body, startY: 124,
+    styles: { fontSize: 9, cellPadding: 5 },
+    headStyles: { fillColor: HEADER_COLOR, textColor: 255 },
+    columnStyles: { 0: { cellWidth: 120 }, 1: { cellWidth: 200 } },
+    didParseCell: (d) => {
+      if (d.section === 'body' && d.row.index === body.length - 1) {
+        d.cell.styles.fontStyle = 'bold'; d.cell.styles.fillColor = [245, 245, 244]
+      }
+    }
+  })
+
+  // Approval block — one line per approved project (ASCII only; jsPDF core
+  // fonts are WinAnsi and corrupt unicode glyphs).
+  let y = doc.lastAutoTable.finalY + 28
+  doc.setFontSize(10)
+  doc.setFont('helvetica', 'bold'); doc.setTextColor(22, 163, 74)
+  doc.text('Approved', 40, y)
+  doc.setFont('helvetica', 'normal'); doc.setTextColor(90)
+  y += 16
+  ;(approvals || []).forEach(a => {
+    const who = a.approver ? `by ${a.approver}` : ''
+    const when = a.decided_at ? ` on ${fmtStamp(a.decided_at)} UTC` : ''
+    doc.text(`${a.code}  ${who}${when}`.trim(), 40, y)
+    y += 14
+  })
+
+  // Provenance stamp — ties this copy to who downloaded it, when, and from
+  // where, so it can be trusted when attached to an invoice.
+  y += 10
+  doc.setTextColor(150); doc.setFontSize(8)
+  doc.text(`Downloaded by ${meta.downloadedBy || meta.employee || 'user'} · ${fmtStamp(meta.downloadedAt || generatedAt.toISOString())} UTC · IP ${meta.ip || 'unknown'}`, 40, y)
+  y += 11
+  doc.text(`Generated ${fmtStamp(generatedAt.toISOString())} · UTC`, 40, y)
+
+  const filename = `Timesheet_Approved_${(meta.employee || 'user').split('@')[0]}_${meta.weekStart}.pdf`
+  return { doc, filename }
+}
+
 function totalRow(r) { return r.hours.reduce((a, h) => a + (+h || 0), 0) }
 function totalHours(rows) { return rows.reduce((a, r) => a + totalRow(r), 0) }
 function fmtStamp(iso) {

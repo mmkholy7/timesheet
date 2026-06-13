@@ -1,7 +1,7 @@
 import './style.css'
 import { initAuth, handleAuth, signOut, toggleAuthMode, requestPasswordReset, updatePassword, signInWithGoogle, signInWithMicrosoft, requestEmailCode, verifyEmailCode, changePassword, openChangePassword, closeChangePassword } from './auth.js'
 import { loadAllSheets, loadProfile, loadProjects, setUser, clearSheets, logAction } from './data.js'
-import { render, addRow, submitSheet, submitAndSend, prevWeek, nextWeek, goToday, toggleWeekend, recallSheet, openAddProject, closeAddProject, saveNewProject, refreshApprovals } from './timesheet.js'
+import { render, addRow, submitSheet, submitAndSend, prevWeek, nextWeek, goToday, toggleWeekend, recallSheet, openAddProject, closeAddProject, saveNewProject, refreshApprovals, downloadApproved } from './timesheet.js'
 import { exportExcel } from './export.js'
 import { openSendPdf, closeSendPdf, sendPdfQuick, sendPdfNow, downloadPdfNow } from './sendpdf.js'
 import { renderDashboard } from './dashboard.js'
@@ -77,6 +77,7 @@ window.addRow = addRow
 window.submitSheet = submitSheet
 window.submitAndSend = submitAndSend
 window.recallSheet = recallSheet
+window.downloadApproved = downloadApproved
 window.openAddProject = openAddProject
 window.closeAddProject = closeAddProject
 window.saveNewProject = saveNewProject
