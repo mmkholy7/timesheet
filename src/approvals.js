@@ -16,6 +16,13 @@ function addDays(dateStr, n) {
 function fmtStamp(iso) { return iso ? new Date(iso).toISOString().replace('T', ' ').slice(0, 16) + ' UTC' : '' }
 
 let cache = []
+let focusId = null   // an approval id to scroll to / highlight on next render
+
+// Called from the bell dropdown: jump to Approvals and spotlight one card.
+export function focusApproval(id) {
+  focusId = id
+  window.setView('approvals')   // triggers renderApprovals
+}
 
 export async function renderApprovals() {
   const list = document.getElementById('approvals-list')
@@ -58,6 +65,17 @@ export async function renderApprovals() {
       else decide(btn, a, btn.dataset.act)
     })
   })
+
+  // If we arrived here from a bell notification, spotlight that card.
+  if (focusId) {
+    const card = list.querySelector(`[data-approval-id="${focusId}"]`)
+    focusId = null
+    if (card) {
+      card.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      card.classList.add('approval-flash')
+      setTimeout(() => card.classList.remove('approval-flash'), 1800)
+    }
+  }
 }
 
 function sectionTitle(text) {
@@ -90,6 +108,7 @@ function card(a) {
 
   const el = document.createElement('div')
   el.className = 'approval-card'
+  el.dataset.approvalId = a.id
   el.innerHTML = `
     <div class="approval-head">
       <div>

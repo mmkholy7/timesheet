@@ -5,7 +5,7 @@ import { render, addRow, submitSheet, submitAndSend, prevWeek, nextWeek, goToday
 import { exportExcel } from './export.js'
 import { openSendPdf, closeSendPdf, sendPdfQuick, sendPdfNow, downloadPdfNow } from './sendpdf.js'
 import { renderDashboard } from './dashboard.js'
-import { renderApprovals } from './approvals.js'
+import { renderApprovals, focusApproval } from './approvals.js'
 import { renderAdmin, renderLogs } from './admin.js'
 import { refreshNotifications, toggleNotif } from './notify.js'
 import { showLoading, hideLoading, showAuth, showApp, showRecovery, toast } from './ui.js'
@@ -32,6 +32,7 @@ function setView(view) {
   if (view === 'logs') renderLogs()
 }
 window.setView = setView
+window.focusApproval = focusApproval
 window.comingSoon = (name) => toast(`${name} is coming in the next update.`)
 
 // Swap the sidebar logo to the org's brand, or hide it if no org is assigned.

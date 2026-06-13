@@ -167,21 +167,20 @@ function projectsInSheet(sheet) {
   return [...ids]
 }
 
-// On submit, ensure a Pending approval row exists per project in the sheet
+// On (re)submit, route the sheet to its approvers. We clear any existing
+// approval rows for the sheet and create fresh Pending ones. This is what makes
+// a REJECTED week become Pending again on resubmit (employees can't update an
+// approval's status via RLS, but they can delete their own and insert), and it
+// restarts the "pending for N days" clock via created_at.
 export async function createApprovalsForSheet(wk) {
   const sheet = allSheets[wk]
   if (!sheet || !sheet.id) return
-  const rows = projectsInSheet(sheet).map(project_id => ({
-    timesheet_id: sheet.id,
-    project_id,
-    status: 'Pending'
-  }))
-  if (!rows.length) return
-  // Insert any missing approval rows (ON CONFLICT DO NOTHING). We don't update
-  // existing ones here because employees can't write approval status (RLS).
-  const { error } = await sb
-    .from('approvals')
-    .upsert(rows, { onConflict: 'timesheet_id,project_id', ignoreDuplicates: true })
+  const ids = projectsInSheet(sheet)
+  const { error: delErr } = await sb.from('approvals').delete().eq('timesheet_id', sheet.id)
+  if (delErr) { toast('Approval routing error: ' + delErr.message); return }
+  if (!ids.length) return
+  const rows = ids.map(project_id => ({ timesheet_id: sheet.id, project_id, status: 'Pending' }))
+  const { error } = await sb.from('approvals').insert(rows)
   if (error) toast('Approval routing error: ' + error.message)
 }
 
@@ -278,7 +277,7 @@ export async function loadMyRoutedProjectIds() {
 export async function loadApprovals() {
   const { data, error } = await sb
     .from('approvals')
-    .select('id, status, project_id, decided_at, comment, projects(code, customers(name)), timesheets(id, week_start, user_id, profiles(email, full_name))')
+    .select('id, status, project_id, decided_at, created_at, comment, projects(code, customers(name)), timesheets(id, week_start, user_id, profiles(email, full_name))')
     .order('status', { ascending: true })
   if (error) { toast('Error loading approvals: ' + error.message); return [] }
   return data || []

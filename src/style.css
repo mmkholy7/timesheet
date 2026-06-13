@@ -325,6 +325,9 @@ td.col-delete { text-align: center; }
 .notif-item:hover { background: var(--surface-2); }
 .notif-emp { font-size: 13px; font-weight: 600; }
 .notif-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.notif-overdue { margin-left: 8px; font-size: 10px; font-weight: 700; color: var(--accent); background: var(--accent-soft); padding: 1px 6px; border-radius: 8px; vertical-align: middle; }
+.notif.has-overdue .notif-badge { background: var(--amber); color: #2a2300; }
+.approval-flash { outline: 2px solid var(--accent); outline-offset: 2px; transition: outline-color .3s; }
 .notif-empty { padding: 22px 14px; text-align: center; color: var(--muted); font-size: 13px; }
 
 /* ── APPROVALS section headings ── */

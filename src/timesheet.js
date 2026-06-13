@@ -278,30 +278,36 @@ async function markSubmitted(wk) {
   return true
 }
 
-// "Submit" — record the week as submitted without notifying the approver.
+// "Submit" — record the week as submitted (and route to approvers) without
+// emailing. Works for a fresh Draft and for resubmitting a rejected week.
 export async function submitSheet() {
   const wk = weekKey(currentWeekStart)
-  if (getLocalSheet(wk).status === 'Submitted') { toast('Already submitted.'); return }
-  if (await markSubmitted(wk)) toast('Submitted ✓ (approver not notified)')
+  const appr = myApprovals[wk]
+  const resubmit = appr && appr.rejected && appr.rejected.length
+  if (!(await markSubmitted(wk))) return    // sets Submitted + (re)routes approvals
+  await refreshApprovals()                  // clear the reject banner / refresh state
+  toast(resubmit ? 'Resubmitted ✓ (approver not notified)' : 'Submitted ✓ (approver not notified)')
 }
 
-// "Submit & send for approval" — submit and email the project's approver(s).
+// "Submit & send for approval" — submit, route, and email the approver(s).
 export async function submitAndSend() {
   const wk = weekKey(currentWeekStart)
   const sheet = getLocalSheet(wk)
-  const wasSubmitted = sheet.status === 'Submitted'
-  if (!wasSubmitted && !(await markSubmitted(wk))) return
-  if (wasSubmitted && !sheet.rows.some(r => r.project_id && r.hours.some(h => +h > 0))) {
-    toast('Add hours to a project before submitting.'); return
-  }
-  if (wasSubmitted) await createApprovalsForSheet(wk)   // ensure rows exist if it was already submitted
+  if (!(await markSubmitted(wk))) return    // sets Submitted + (re)routes approvals
+
+  let emailed = false
   try {
-    await sb.functions.invoke('notify-submission', { body: { timesheet_id: sheet.id } })
+    const { data, error } = await sb.functions.invoke('notify-submission', { body: { timesheet_id: sheet.id } })
+    emailed = !error && !data?.error
+  } catch { emailed = false }
+
+  if (emailed) {
     logAction('timesheet: sent for approval', 'timesheet', wk)
     toast('Sent for approval — your approver has been notified ✓')
-  } catch {
-    toast('Submitted — but the email service is not connected yet.')
+  } else {
+    toast('Submitted — but the approver email did not send. Check an approver is assigned.')
   }
+  await refreshApprovals()                  // clear the reject banner / refresh state
 }
 
 // "Recall" — pull a submitted week back to Draft for editing/resubmission.
