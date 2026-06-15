@@ -340,6 +340,11 @@ async function clientIp() {
   } catch { return '' }
 }
 
+async function hashIpTimestamp(ip, timestamp) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`${ip}|${timestamp}`))
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('')
+}
+
 // Download the approved week as an invoice-ready PDF, stamped with who approved
 // each project and when, plus a provenance footer (downloader, time, IP). Only
 // the approved projects are included.
@@ -366,6 +371,8 @@ export async function downloadApproved() {
   }
 
   const ip = await clientIp()
+  const downloadedAt = new Date().toISOString()
+  const ipHash = await hashIpTimestamp(ip, downloadedAt)
   if (btn) { btn.disabled = false; btn.textContent = '⬇ Approved PDF' }
 
   const days = getWeekDays(currentWeekStart)
@@ -375,14 +382,14 @@ export async function downloadApproved() {
       weekStart: fmtDate(currentWeekStart),
       weekEnd: fmtDate(days[6]),
       downloadedBy: profile?.email,
-      downloadedAt: new Date().toISOString(),
-      ip
+      downloadedAt,
+      ipHash
     },
     rows,
     details.map(d => ({ code: d.code, approver: d.approver, decided_at: d.decided_at }))
   )
   doc.save(filename)
-  logAction('timesheet: downloaded approved', 'timesheet', wk, { ip })
+  logAction('timesheet: downloaded approved', 'timesheet', wk, { ip_hash: ipHash })
   toast('Approved timesheet downloaded ✓')
 }
 
