@@ -277,7 +277,7 @@ export async function loadMyRoutedProjectIds() {
 export async function loadApprovals() {
   const { data, error } = await sb
     .from('approvals')
-    .select('id, status, project_id, decided_at, created_at, comment, projects(code, customers(name)), timesheets(id, week_start, user_id, profiles(email, full_name))')
+    .select('id, status, project_id, decided_at, created_at, comment, ip_hash, projects(code, customers(name)), timesheets(id, week_start, user_id, profiles(email, full_name))')
     .order('status', { ascending: true })
   if (error) { toast('Error loading approvals: ' + error.message); return [] }
   return data || []
@@ -547,20 +547,24 @@ export async function assignApprover(employeeId, projectId, approverEmail) {
   return true
 }
 
-export async function decideApproval(approvalId, decision, comment = null) {
+export async function decideApproval(approvalId, decision, comment = null, decidedAt = null, ipHash = null) {
   const base = {
     status: decision,                   // 'Approved' | 'Rejected'
     decided_by: currentUserId,
-    decided_at: new Date().toISOString(),
+    decided_at: decidedAt || new Date().toISOString(),
     comment
   }
-  const sel = 'id, decided_at, project_id, timesheets(id, week_start, user_id)'
-  // Prefer storing the approver's email (for the employee's invoice PDF). If the
-  // decided_by_email column isn't there yet (migration 0011 not applied), retry
-  // without it so approving still works.
+  const sel = 'id, decided_at, ip_hash, project_id, timesheets(id, week_start, user_id)'
+  // Prefer storing the approver's email + ip_hash. Degrade gracefully if the
+  // columns aren't present yet (migrations 0011/0016 not applied).
   let { data, error } = await sb.from('approvals')
-    .update({ ...base, decided_by_email: profile?.email })
+    .update({ ...base, decided_by_email: profile?.email, ip_hash: ipHash })
     .eq('id', approvalId).select(sel).single()
+  if (error && (error.code === 'PGRST204' || /decided_by_email|ip_hash/.test(error.message || ''))) {
+    ;({ data, error } = await sb.from('approvals')
+      .update({ ...base, decided_by_email: profile?.email })
+      .eq('id', approvalId).select(sel).single())
+  }
   if (error && (error.code === 'PGRST204' || /decided_by_email/.test(error.message || ''))) {
     ;({ data, error } = await sb.from('approvals')
       .update(base).eq('id', approvalId).select(sel).single())

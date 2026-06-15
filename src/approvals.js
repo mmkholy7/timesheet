@@ -130,6 +130,23 @@ function card(a) {
   return el
 }
 
+// Best-effort public IP. Browsers can't read their own IP, so ask an echo service.
+async function clientIp() {
+  try {
+    const ctrl = new AbortController()
+    const t = setTimeout(() => ctrl.abort(), 4000)
+    const r = await fetch('https://api64.ipify.org?format=json', { signal: ctrl.signal })
+    clearTimeout(t)
+    return (await r.json()).ip || ''
+  } catch { return '' }
+}
+
+// SHA-256 of "ip|timestamp" — ties the approval to the approver's network identity.
+async function hashIpTimestamp(ip, timestamp) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`${ip}|${timestamp}`))
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('')
+}
+
 // Build the approved (or to-be-approved) PDF for one approval.
 function buildPdf(a) {
   const ts = a.timesheets
@@ -142,7 +159,8 @@ function buildPdf(a) {
     customer: a.projects?.customers?.name,
     project: a.projects?.code,
     approvedBy: a.status === 'Approved' ? profile?.email : null,
-    decidedAt: a.decided_at
+    decidedAt: a.decided_at,
+    approvalIpHash: a.ip_hash || null
   }, rows)
 }
 
@@ -163,19 +181,26 @@ async function decide(btn, approval, act) {
 
   btn.disabled = true; btn.textContent = decision === 'Approved' ? 'Approving…' : 'Rejecting…'
 
-  const result = await decideApproval(approval.id, decision, comment)
+  // Capture IP and pre-compute the timestamp so hash and DB value are identical.
+  const ip = await clientIp()
+  const decidedAt = new Date().toISOString()
+  const ipHash = await hashIpTimestamp(ip, decidedAt)
+
+  const result = await decideApproval(approval.id, decision, comment, decidedAt, ipHash)
   if (!result) { btn.disabled = false; return }
 
   logAction(`approval: ${decision.toLowerCase()}`, 'approval', approval.id, {
     employee: approval.timesheets?.profiles?.email,
     project: approval.projects?.code,
     week: approval.timesheets?.week_start,
-    comment: comment || undefined
+    comment: comment || undefined,
+    ip_hash: ipHash
   })
 
   if (decision === 'Approved') {
     approval.status = 'Approved'
     approval.decided_at = result.decided_at
+    approval.ip_hash = result.ip_hash || ipHash
     downloadPdf(approval)                 // hand the approver the signed PDF immediately
     await emailApproval(approval, result) // …and email a copy (employee + approver)
   }

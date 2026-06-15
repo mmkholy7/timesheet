@@ -70,7 +70,13 @@ export function buildTimesheetPDF(meta, rows) {
     const lw = doc.getTextWidth(label)
     doc.setFont('helvetica', 'normal'); doc.setTextColor(90)
     doc.text(`by ${meta.approvedBy}  ·  ${fmtStamp(meta.decidedAt)}`, 40 + lw + 8, y)
-    y += 18
+    y += 14
+    if (meta.approvalIpHash) {
+      doc.setTextColor(150); doc.setFontSize(8)
+      doc.text(`Verification (SHA-256 of approver IP + timestamp): ${meta.approvalIpHash}`, 40, y)
+      y += 12
+    }
+    y += 6
   }
   doc.setTextColor(150); doc.setFontSize(8)
   doc.text(`Generated ${fmtStamp(generatedAt.toISOString())} · UTC`, 40, y)
