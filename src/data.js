@@ -217,6 +217,14 @@ export async function loadMyApprovals() {
     e.allApproved = e.statuses.length > 0 && e.statuses.every(s => s === 'Approved')
     e.pending = e.statuses.some(s => s === 'Pending')
   })
+  // Mirror what the DB trigger did: if any week has a rejection and the local
+  // sheet is still 'Submitted', flip it to 'Draft' so the UI unlocks without
+  // requiring a full page reload.
+  Object.entries(byWeek).forEach(([wk, e]) => {
+    if (e.rejected.length > 0 && allSheets[wk]?.status === 'Submitted') {
+      allSheets[wk].status = 'Draft'
+    }
+  })
   myApprovals = byWeek
   return byWeek
 }
@@ -554,7 +562,10 @@ export async function decideApproval(approvalId, decision, comment = null, decid
     decided_at: decidedAt || new Date().toISOString(),
     comment
   }
-  const sel = 'id, decided_at, ip_hash, project_id, timesheets(id, week_start, user_id)'
+  // ip_hash is NOT in sel — the caller holds the locally-computed value and does
+  // not need it echoed back. Keeping it out of the SELECT also means the fallback
+  // chain works even before migration 0016 is applied.
+  const sel = 'id, decided_at, project_id, timesheets(id, week_start, user_id)'
   // Prefer storing the approver's email + ip_hash. Degrade gracefully if the
   // columns aren't present yet (migrations 0011/0016 not applied).
   let { data, error } = await sb.from('approvals')

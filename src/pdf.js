@@ -73,7 +73,7 @@ export function buildTimesheetPDF(meta, rows) {
     y += 14
     if (meta.approvalIpHash) {
       doc.setTextColor(150); doc.setFontSize(8)
-      doc.text(`Verification (SHA-256 of approver IP + timestamp): ${meta.approvalIpHash}`, 40, y)
+      doc.text(`Verified user approval: ${meta.approvalIpHash}`, 40, y)
       y += 12
     }
     y += 6
@@ -149,16 +149,20 @@ export function buildApprovedPDF(meta, rows, approvals) {
     y += 14
   })
 
-  // Provenance stamp — ties this copy to who downloaded it, when, and from
-  // where, so it can be trusted when attached to an invoice.
+  // Provenance stamp — ties this copy to who downloaded it and when.
   y += 10
   doc.setTextColor(150); doc.setFontSize(8)
-  doc.text(`Downloaded by ${meta.downloadedBy || meta.employee || 'user'} · ${fmtStamp(meta.downloadedAt || generatedAt.toISOString())} UTC · IP ${meta.ip || 'unknown'}`, 40, y)
+  doc.text(`Downloaded by ${meta.downloadedBy || meta.employee || 'user'} · ${fmtStamp(meta.downloadedAt || generatedAt.toISOString())} UTC`, 40, y)
   y += 11
+  if (meta.ipHash) {
+    doc.text(`Verified user approval: ${meta.ipHash}`, 40, y)
+    y += 11
+  }
   doc.text(`Generated ${fmtStamp(generatedAt.toISOString())} · UTC`, 40, y)
 
   const filename = `Timesheet_Approved_${(meta.employee || 'user').split('@')[0]}_${meta.weekStart}.pdf`
-  return { doc, filename }
+  const base64 = doc.output('datauristring').split(',')[1]
+  return { doc, base64, filename }
 }
 
 function totalRow(r) { return r.hours.reduce((a, h) => a + (+h || 0), 0) }

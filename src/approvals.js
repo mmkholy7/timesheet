@@ -1,6 +1,6 @@
 import { loadApprovals, loadApprovalEntries, decideApproval, profile, logAction, loadMyApproverKeys } from './data.js'
 import { toast } from './ui.js'
-import { buildTimesheetPDF } from './pdf.js'
+import { buildApprovedPDF } from './pdf.js'
 import { sb } from './supabase.js'
 import { refreshNotifications } from './notify.js'
 
@@ -147,21 +147,22 @@ async function hashIpTimestamp(ip, timestamp) {
   return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('')
 }
 
-// Build the approved (or to-be-approved) PDF for one approval.
+// Build the approval PDF — same format as the employee's invoice PDF so both
+// parties hold an identical document.
 function buildPdf(a) {
   const ts = a.timesheets
   const rows = (a._entries || []).map(e => ({ rate: e.rate, proj: e.projects?.code || '', hours: e.hours }))
-  return buildTimesheetPDF({
+  const approvals = a.status === 'Approved'
+    ? [{ code: a.projects?.code || '', approver: profile?.email || '', decided_at: a.decided_at }]
+    : []
+  return buildApprovedPDF({
     employee: ts.profiles?.email,
     weekStart: ts.week_start,
     weekEnd: addDays(ts.week_start, 6),
-    status: a.status === 'Approved' ? 'Approved' : 'Submitted',
-    customer: a.projects?.customers?.name,
-    project: a.projects?.code,
-    approvedBy: a.status === 'Approved' ? profile?.email : null,
-    decidedAt: a.decided_at,
-    approvalIpHash: a.ip_hash || null
-  }, rows)
+    downloadedBy: profile?.email,
+    downloadedAt: new Date().toISOString(),
+    ipHash: a.ip_hash || null
+  }, rows, approvals)
 }
 
 function downloadPdf(a) {
@@ -200,14 +201,29 @@ async function decide(btn, approval, act) {
   if (decision === 'Approved') {
     approval.status = 'Approved'
     approval.decided_at = result.decided_at
-    approval.ip_hash = result.ip_hash || ipHash
+    approval.ip_hash = ipHash            // locally computed — never depends on DB round-trip
     downloadPdf(approval)                 // hand the approver the signed PDF immediately
     await emailApproval(approval, result) // …and email a copy (employee + approver)
+  }
+
+  if (decision === 'Rejected') {
+    await emailRejection(approval, comment)
   }
 
   toast(`Timesheet ${decision.toLowerCase()} ✓`)
   renderApprovals()
   refreshNotifications()   // update the pending-approval bell
+}
+
+async function emailRejection(approval, comment) {
+  try {
+    const { error } = await sb.functions.invoke('notify-rejection', {
+      body: { approval_id: approval.id, comment }
+    })
+    if (error) toast('Rejected — but the notification email failed.')
+  } catch {
+    toast('Rejected. (Email service not connected yet.)')
+  }
 }
 
 async function emailApproval(approval, result) {
