@@ -105,7 +105,7 @@ export function render() {
       banner.style.display = ''
       banner.innerHTML = `<strong>Returned by your approver.</strong> ` +
         rej.map(r => `${escHtml(r.project)}${r.comment ? ' — ' + escHtml(r.comment) : ''}`).join(' · ') +
-        ` <span class="rb-hint">Recall, fix, and resubmit.</span>`
+        ` <span class="rb-hint">Fix and resubmit.</span>`
     } else {
       banner.style.display = 'none'
     }

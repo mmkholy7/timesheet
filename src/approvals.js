@@ -205,9 +205,24 @@ async function decide(btn, approval, act) {
     await emailApproval(approval, result) // …and email a copy (employee + approver)
   }
 
+  if (decision === 'Rejected') {
+    await emailRejection(approval, comment)
+  }
+
   toast(`Timesheet ${decision.toLowerCase()} ✓`)
   renderApprovals()
   refreshNotifications()   // update the pending-approval bell
+}
+
+async function emailRejection(approval, comment) {
+  try {
+    const { error } = await sb.functions.invoke('notify-rejection', {
+      body: { approval_id: approval.id, comment }
+    })
+    if (error) toast('Rejected — but the notification email failed.')
+  } catch {
+    toast('Rejected. (Email service not connected yet.)')
+  }
 }
 
 async function emailApproval(approval, result) {

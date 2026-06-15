@@ -73,7 +73,7 @@ export function buildTimesheetPDF(meta, rows) {
     y += 14
     if (meta.approvalIpHash) {
       doc.setTextColor(150); doc.setFontSize(8)
-      doc.text(`Verification (SHA-256 of approver IP + timestamp): ${meta.approvalIpHash}`, 40, y)
+      doc.text(`Verified user approval: ${meta.approvalIpHash}`, 40, y)
       y += 12
     }
     y += 6

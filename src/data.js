@@ -217,6 +217,14 @@ export async function loadMyApprovals() {
     e.allApproved = e.statuses.length > 0 && e.statuses.every(s => s === 'Approved')
     e.pending = e.statuses.some(s => s === 'Pending')
   })
+  // Mirror what the DB trigger did: if any week has a rejection and the local
+  // sheet is still 'Submitted', flip it to 'Draft' so the UI unlocks without
+  // requiring a full page reload.
+  Object.entries(byWeek).forEach(([wk, e]) => {
+    if (e.rejected.length > 0 && allSheets[wk]?.status === 'Submitted') {
+      allSheets[wk].status = 'Draft'
+    }
+  })
   myApprovals = byWeek
   return byWeek
 }
