@@ -200,7 +200,7 @@ async function decide(btn, approval, act) {
   if (decision === 'Approved') {
     approval.status = 'Approved'
     approval.decided_at = result.decided_at
-    approval.ip_hash = result.ip_hash || ipHash
+    approval.ip_hash = ipHash            // locally computed — never depends on DB round-trip
     downloadPdf(approval)                 // hand the approver the signed PDF immediately
     await emailApproval(approval, result) // …and email a copy (employee + approver)
   }

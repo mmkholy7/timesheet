@@ -554,7 +554,10 @@ export async function decideApproval(approvalId, decision, comment = null, decid
     decided_at: decidedAt || new Date().toISOString(),
     comment
   }
-  const sel = 'id, decided_at, ip_hash, project_id, timesheets(id, week_start, user_id)'
+  // ip_hash is NOT in sel — the caller holds the locally-computed value and does
+  // not need it echoed back. Keeping it out of the SELECT also means the fallback
+  // chain works even before migration 0016 is applied.
+  const sel = 'id, decided_at, project_id, timesheets(id, week_start, user_id)'
   // Prefer storing the approver's email + ip_hash. Degrade gracefully if the
   // columns aren't present yet (migrations 0011/0016 not applied).
   let { data, error } = await sb.from('approvals')
